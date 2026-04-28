@@ -1,10 +1,10 @@
 # Polymarket Go SDK
 
-[![Go CI](https://github.com/GoPolymarket/polymarket-go-sdk/actions/workflows/go.yml/badge.svg)](https://github.com/GoPolymarket/polymarket-go-sdk/actions)
-[![Go Reference](https://pkg.go.dev/badge/github.com/GoPolymarket/polymarket-go-sdk.svg)](https://pkg.go.dev/github.com/GoPolymarket/polymarket-go-sdk)
+[![Go CI](https://github.com/neor-it/polymarket-go-sdk/actions/workflows/go.yml/badge.svg)](https://github.com/neor-it/polymarket-go-sdk/actions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/neor-it/polymarket-go-sdk.svg)](https://pkg.go.dev/github.com/neor-it/polymarket-go-sdk)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**Official docs alignment:** Implements Polymarket Order Attribution (builder auth headers for leaderboard/grants) and follows the Builder Authentication/Remote Signing guidance referenced by the Relayer Client docs; official docs: [Order Attribution](https://docs.polymarket.com/developers/builders/order-attribution), [Relayer Client](https://docs.polymarket.com/developers/builders/relayer-client).
+**Official docs alignment:** Implements Polymarket CLOB V2 order signing, exchange domain version `2`, pUSD collateral metadata, and builder attribution through the signed `builder` field. Legacy builder HMAC headers remain available only for non-order relayer/builder API flows.
 
 An unofficial, production-ready, and feature-complete Go SDK for the Polymarket CLOB (Central Limit Order Book). Designed for high-frequency trading, market making, and data analysis.
 
@@ -17,7 +17,7 @@ The SDK is organized as a layered trading foundation:
 - **Application layer**: `Client` entry points for CLOB REST, WebSocket, and RTDS workflows.
 - **Execution layer**: `pkg/execution` for place/cancel/query/replay contracts and unified lifecycle state.
 - **Protocol layer**: `pkg/clob`, `pkg/clob/ws`, and `pkg/rtds` for exchange interaction and streams.
-- **Security layer**: `pkg/auth` for EIP-712/HMAC signing, Proxy/Safe/KMS flows, and builder attribution headers.
+- **Security layer**: `pkg/auth` for EIP-712/HMAC signing, Proxy/Safe/KMS flows, and CLOB V2 builder codes.
 - **Transport layer**: `pkg/transport` for retry policy, error normalization, and request shaping.
 
 The SDK is organized into modular packages to ensure maintainability and extensibility:
@@ -67,7 +67,7 @@ graph TD
 ## 🚀 Installation
 
 ```bash
-go get github.com/GoPolymarket/polymarket-go-sdk
+go get github.com/neor-it/polymarket-go-sdk
 ```
 
 ## 🛠 Quick Start
@@ -84,12 +84,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/rtds"
+	"github.com/neor-it/polymarket-go-sdk"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/rtds"
 )
 
 func main() {
@@ -289,7 +289,7 @@ The SDK provides typed errors in `pkg/errors` to help you handle trading failure
 ```go
 import (
     "errors"
-    sdkerrors "github.com/GoPolymarket/polymarket-go-sdk/pkg/errors"
+    sdkerrors "github.com/neor-it/polymarket-go-sdk/pkg/errors"
 )
 
 resp, err := client.CLOB.CreateOrder(ctx, order)
@@ -311,24 +311,19 @@ builder.PriceDec(decimal.NewFromFloat(0.5001)).
         SizeDec(decimal.NewFromInt(100))
 ```
 
-### 3. Remote Builder Attribution
+### 3. Builder Attribution
 
-If you are developing a client-side application (Web/Mobile) and want to receive builder rewards without exposing your `Builder Secret` to the end users, you can use the **Remote Signer** pattern.
-
-1.  Deploy the standalone signer service found in `cmd/signer-server` to your secure infrastructure (support for Docker included).
-2.  Configure your client to use the remote signer:
+CLOB V2 order attribution uses a public bytes32 builder code attached to each signed order:
 
 ```go
 client := polymarket.NewClient(
     polymarket.WithBuilderConfig(&auth.BuilderConfig{
-        Remote: &auth.BuilderRemoteConfig{
-            Host: "https://your-signer-api.com/v1/sign-builder",
-        },
+        Code: "0x0000000000000000000000000000000000000000000000000000000000000001",
     }),
 )
 ```
 
-If you need to switch an already-authenticated client into builder attribution mode (and restart heartbeats with the new headers), use `PromoteToBuilder`:
+If you need to switch an already-authenticated client into builder attribution mode, use `PromoteToBuilder`:
 
 ```go
 builderClient := authClient.PromoteToBuilder(myBuilderConfig)
@@ -373,4 +368,4 @@ Distributed under the Apache License 2.0. See `LICENSE` for more information.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=GoPolymarket/polymarket-go-sdk&type=Date)](https://www.star-history.com/#GoPolymarket/polymarket-go-sdk&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=neor-it/polymarket-go-sdk&type=Date)](https://www.star-history.com/#neor-it/polymarket-go-sdk&Date)

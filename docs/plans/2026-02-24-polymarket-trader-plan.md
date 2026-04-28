@@ -31,7 +31,7 @@ go mod init github.com/GoPolymarket/polymarket-trader
 **Step 2: Add SDK dependency**
 
 ```bash
-go get github.com/GoPolymarket/polymarket-go-sdk@latest
+go get github.com/neor-it/polymarket-go-sdk@latest
 go get gopkg.in/yaml.v3
 ```
 
@@ -369,7 +369,7 @@ package feed
 import (
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 func TestBookSnapshotUpdate(t *testing.T) {
@@ -447,7 +447,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 // BookSnapshot maintains an in-memory orderbook snapshot per asset.
@@ -738,7 +738,7 @@ package strategy
 import (
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 func TestMakerQuote(t *testing.T) {
@@ -816,7 +816,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 type MakerConfig struct {
@@ -915,7 +915,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 func TestTakerSignal(t *testing.T) {
@@ -1049,7 +1049,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
 )
 
 type TakerConfig struct {
@@ -1182,7 +1182,7 @@ package strategy
 import (
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 func TestSelectTopMarkets(t *testing.T) {
@@ -1228,7 +1228,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 type marketScore struct {
@@ -1313,10 +1313,10 @@ import (
 	"syscall"
 	"time"
 
-	polymarket "github.com/GoPolymarket/polymarket-go-sdk"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	polymarket "github.com/neor-it/polymarket-go-sdk"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 
 	"github.com/GoPolymarket/polymarket-trader/internal/config"
 	"github.com/GoPolymarket/polymarket-trader/internal/feed"

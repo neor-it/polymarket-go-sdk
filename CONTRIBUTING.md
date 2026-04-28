@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/GoPolymarket/polymarket-go-sdk.git
+git clone https://github.com/neor-it/polymarket-go-sdk.git
 cd polymarket-go-sdk
 
 # Install dependencies

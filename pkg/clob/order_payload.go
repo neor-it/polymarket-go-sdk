@@ -1,12 +1,13 @@
 package clob
 
-import "github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+import "github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 func buildOrderPayload(order *clobtypes.SignedOrder) (map[string]interface{}, error) {
@@ -82,15 +83,15 @@ func orderWithSignature(order *clobtypes.SignedOrder) (map[string]interface{}, e
 		"salt":          salt,
 		"maker":         order.Order.Maker.Hex(),
 		"signer":        order.Order.Signer.Hex(),
-		"taker":         order.Order.Taker.Hex(),
 		"tokenId":       u256String(order.Order.TokenID),
 		"makerAmount":   decimalString(order.Order.MakerAmount),
 		"takerAmount":   decimalString(order.Order.TakerAmount),
 		"side":          side,
 		"expiration":    u256String(order.Order.Expiration),
-		"nonce":         u256String(order.Order.Nonce),
-		"feeRateBps":    decimalString(order.Order.FeeRateBps),
 		"signatureType": sigType,
+		"timestamp":     strconv.FormatInt(order.Order.Timestamp, 10),
+		"metadata":      order.Order.Metadata.Hex(),
+		"builder":       order.Order.Builder.Hex(),
 		"signature":     order.Signature,
 	}, nil
 }

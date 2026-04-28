@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/shopspring/decimal"
 )
 

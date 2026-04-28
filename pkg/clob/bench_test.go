@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 var benchSigner auth.Signer
@@ -66,14 +66,15 @@ func BenchmarkOrderBuilderBuild(b *testing.B) {
 
 func BenchmarkJSONMarshalOrder(b *testing.B) {
 	order := map[string]interface{}{
-		"exchange":     "0x4bFb41d5Bfc6C6Cfb53D0a3A6c14a6B4D7a7E8d",
-		"maker":        "0x1234567890123456789012345678901234567890",
-		"token_id":     "123456789012345678901234567890",
-		"side":         "BUY",
-		"price":        "0.55",
-		"size":         "100",
-		"fee_rate_bps": 0,
-		"nonce":        12345678,
+		"exchange":  "0x4bFb41d5Bfc6C6Cfb53D0a3A6c14a6B4D7a7E8d",
+		"maker":     "0x1234567890123456789012345678901234567890",
+		"token_id":  "123456789012345678901234567890",
+		"side":      "BUY",
+		"price":     "0.55",
+		"size":      "100",
+		"timestamp": 1713398400000,
+		"metadata":  "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"builder":   "0x0000000000000000000000000000000000000000000000000000000000000000",
 	}
 
 	b.ResetTimer()
@@ -90,8 +91,9 @@ func BenchmarkJSONUnmarshalOrder(b *testing.B) {
 		"side":"BUY",
 		"price":"0.55",
 		"size":"100",
-		"fee_rate_bps":0,
-		"nonce":12345678
+		"timestamp":1713398400000,
+		"metadata":"0x0000000000000000000000000000000000000000000000000000000000000000",
+		"builder":"0x0000000000000000000000000000000000000000000000000000000000000000"
 	}`
 
 	b.ResetTimer()

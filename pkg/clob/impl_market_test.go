@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 type assertBodyDoer struct {
@@ -75,6 +75,7 @@ func TestMarketMethods(t *testing.T) {
 			"/neg-risk?token_id=t1":        `{"neg_risk":true}`,
 			"/fee-rate?token_id=t1":        `{"base_fee":10}`,
 			"/prices-history?token_id=t1":  `{"history":[{"t":123,"p":0.5}]}`,
+			"/clob-markets/c1":             `{"t":[{"t":"t2","o":"Yes"}],"c":"c1","mos":5,"mts":0.01,"rfqe":false,"fd":{"r":0.072,"e":1,"to":true}}`,
 		},
 	}
 	client := &clientImpl{
@@ -150,6 +151,31 @@ func TestMarketMethods(t *testing.T) {
 		resp, _ = client.TickSize(ctx, &clobtypes.TickSizeRequest{TokenID: "t1"})
 		if resp.MinimumTickSize != 0.02 {
 			t.Errorf("cache failed")
+		}
+	})
+
+	t.Run("ClobMarketInfo", func(t *testing.T) {
+		client.SetNegRisk("t2", true)
+		resp, err := client.GetClobMarketInfo(ctx, "c1")
+		if err != nil {
+			t.Fatalf("GetClobMarketInfo failed: %v", err)
+		}
+		if resp.MinimumTickSize.String() != "0.01" {
+			t.Fatalf("MinimumTickSize = %s, want 0.01", resp.MinimumTickSize.String())
+		}
+		if resp.MinimumOrderSize.String() != "5" {
+			t.Fatalf("MinimumOrderSize = %s, want 5", resp.MinimumOrderSize.String())
+		}
+		if resp.FeeDetails.Rate.String() != "0.072" || resp.FeeDetails.Exponent.String() != "1" || !resp.FeeDetails.TakerOnly {
+			t.Fatalf("unexpected fee details: %+v", resp.FeeDetails)
+		}
+		tick, err := client.TickSize(ctx, &clobtypes.TickSizeRequest{TokenID: "t2"})
+		if err != nil || tick.MinimumTickSize != 0.01 {
+			t.Fatalf("expected cached tick size 0.01, got %+v err=%v", tick, err)
+		}
+		negRisk, err := client.NegRisk(ctx, &clobtypes.NegRiskRequest{TokenID: "t2"})
+		if err != nil || !negRisk.NegRisk {
+			t.Fatalf("absent clob-market neg_risk must not overwrite existing cache, got %+v err=%v", negRisk, err)
 		}
 	})
 

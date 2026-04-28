@@ -1,7 +1,7 @@
 # Polymarket API Research Report
 
 ## Date: 2026-02-19
-## SDK: github.com/GoPolymarket/polymarket-go-sdk
+## SDK: github.com/neor-it/polymarket-go-sdk
 
 ---
 

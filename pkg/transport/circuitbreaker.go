@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/errors"
+	"github.com/neor-it/polymarket-go-sdk/pkg/errors"
 )
 
 // CircuitState represents the state of the circuit breaker.

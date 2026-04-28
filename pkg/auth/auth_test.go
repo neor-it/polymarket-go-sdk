@@ -213,6 +213,20 @@ func TestBuilderConfig(t *testing.T) {
 		t.Error("remote config should be valid")
 	}
 
+	codeOnly := &BuilderConfig{
+		Code: "0x0000000000000000000000000000000000000000000000000000000000000001",
+	}
+	if !codeOnly.IsValid() {
+		t.Error("builder code config should be valid")
+	}
+	if codeOnly.UseHMACBuilderHeaders() {
+		t.Error("builder code config should not use legacy HMAC headers")
+	}
+	_, err := codeOnly.Headers(context.Background(), "GET", "/", nil, 0)
+	if err == nil {
+		t.Fatal("expected code-only builder config to reject legacy header generation")
+	}
+
 	// Test Headers Generation (Local)
 	// Mock a valid secret
 	local.Local.Secret = base64.StdEncoding.EncodeToString([]byte("secret"))
@@ -243,7 +257,7 @@ func TestBuilderConfig(t *testing.T) {
 	// The implementation expects a JSON map
 	// And checks keys like POLY_BUILDER_API_KEY
 	mockBody := `{"POLY_BUILDER_API_KEY": "mock-key", "POLY_BUILDER_PASSPHRASE": "mock-pass", "POLY_BUILDER_SIGNATURE": "mock-sig", "POLY_BUILDER_TIMESTAMP": "123"}`
-	
+
 	mockResp.Body = io.NopCloser(strings.NewReader(mockBody))
 
 	mockDoer := &mockBuilderDoer{
@@ -252,7 +266,7 @@ func TestBuilderConfig(t *testing.T) {
 
 	remoteMock := &BuilderConfig{
 		Remote: &BuilderRemoteConfig{
-			Host: "http://mock-host",
+			Host:       "http://mock-host",
 			HTTPClient: mockDoer,
 		},
 	}

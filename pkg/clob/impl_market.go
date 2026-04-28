@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 func (c *clientImpl) Markets(ctx context.Context, req *clobtypes.MarketsRequest) (clobtypes.MarketsResponse, error) {
@@ -63,6 +63,29 @@ func (c *clientImpl) MarketsAll(ctx context.Context, req *clobtypes.MarketsReque
 func (c *clientImpl) Market(ctx context.Context, id string) (clobtypes.MarketResponse, error) {
 	var resp clobtypes.MarketResponse
 	err := c.httpClient.Get(ctx, fmt.Sprintf("/markets/%s", id), nil, &resp)
+	return resp, mapError(err)
+}
+
+func (c *clientImpl) GetClobMarketInfo(ctx context.Context, conditionID string) (clobtypes.ClobMarketInfoResponse, error) {
+	var resp clobtypes.ClobMarketInfoResponse
+	if conditionID == "" {
+		return resp, fmt.Errorf("condition_id is required")
+	}
+	err := c.httpClient.Get(ctx, fmt.Sprintf("/clob-markets/%s", conditionID), nil, &resp)
+	if err == nil && c.cache != nil {
+		c.cache.mu.Lock()
+		for _, token := range resp.Tokens {
+			if token.TokenID != "" {
+				if tickSize, parseErr := strconv.ParseFloat(resp.MinimumTickSize.String(), 64); parseErr == nil && tickSize != 0 {
+					c.cache.tickSizes[token.TokenID] = tickSize
+				}
+				if resp.NegRisk != nil {
+					c.cache.negRisk[token.TokenID] = *resp.NegRisk
+				}
+			}
+		}
+		c.cache.mu.Unlock()
+	}
 	return resp, mapError(err)
 }
 

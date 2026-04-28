@@ -1,7 +1,6 @@
 package clob
 
 import (
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"math/big"
 	"strings"
 	"testing"
@@ -9,7 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 func TestBuildOrderPayloadCasingAndOptions(t *testing.T) {
@@ -28,6 +28,9 @@ func TestBuildOrderPayloadCasingAndOptions(t *testing.T) {
 			FeeRateBps:    decimal.NewFromInt(0),
 			Nonce:         types.U256{Int: big.NewInt(0)},
 			SignatureType: &sigType,
+			Timestamp:     1713398400000,
+			Metadata:      common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000000aa"),
+			Builder:       common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000000bb"),
 		},
 		Signature: "0xsig",
 		Owner:     "builder-owner",
@@ -59,6 +62,27 @@ func TestBuildOrderPayloadCasingAndOptions(t *testing.T) {
 	}
 	if orderMap["signature"] != "0xsig" {
 		t.Fatalf("signature mismatch: got %v", orderMap["signature"])
+	}
+	if orderMap["expiration"] != "0" {
+		t.Fatalf("expiration mismatch: got %v", orderMap["expiration"])
+	}
+	if orderMap["timestamp"] != "1713398400000" {
+		t.Fatalf("timestamp mismatch: got %v", orderMap["timestamp"])
+	}
+	if orderMap["metadata"] != "0x00000000000000000000000000000000000000000000000000000000000000aa" {
+		t.Fatalf("metadata mismatch: got %v", orderMap["metadata"])
+	}
+	if orderMap["builder"] != "0x00000000000000000000000000000000000000000000000000000000000000bb" {
+		t.Fatalf("builder mismatch: got %v", orderMap["builder"])
+	}
+
+	for _, legacyField := range []string{"taker", "nonce", "feeRateBps"} {
+		if _, ok := orderMap[legacyField]; ok {
+			t.Fatalf("legacy v1 field %q must not be included in order payload", legacyField)
+		}
+	}
+	if _, ok := payload["fee_rate_bps"]; ok {
+		t.Fatal("legacy top-level fee_rate_bps must not be included in order payload")
 	}
 }
 

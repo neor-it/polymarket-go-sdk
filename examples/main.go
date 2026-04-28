@@ -1,14 +1,13 @@
 package main
 
 import (
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"context"
 	"fmt"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 	"log"
 	"time"
 
-	polymarket "github.com/GoPolymarket/polymarket-go-sdk"
-	
+	polymarket "github.com/neor-it/polymarket-go-sdk"
 )
 
 func main() {

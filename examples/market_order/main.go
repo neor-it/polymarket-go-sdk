@@ -1,16 +1,15 @@
 package main
 
 import (
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"context"
 	"fmt"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 	"log"
 	"os"
 
-	polymarket "github.com/GoPolymarket/polymarket-go-sdk"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
-	
+	polymarket "github.com/neor-it/polymarket-go-sdk"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
 )
 
 func main() {

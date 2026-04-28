@@ -7,14 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/cloberrors"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/heartbeat"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/rfq"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/cloberrors"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/heartbeat"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/rfq"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 // clientImpl implements the Client interface.
@@ -483,4 +484,15 @@ func mapError(err error) error {
 		return cloberrors.FromTypeErr(apiErr)
 	}
 	return err
+}
+
+func (c *clientImpl) builderV2Field() (common.Hash, error) {
+	if c == nil || c.builderCfg == nil {
+		return common.Hash{}, nil
+	}
+	builder, err := parseBuilderCodeString(c.builderCfg.Code)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return builder, nil
 }

@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
+
+// NumericString preserves numeric API fields as strings while accepting JSON numbers.
+type NumericString string
 
 // OrderType represents time-in-force / order type values.
 type OrderType string
@@ -105,6 +109,9 @@ type (
 	}
 	FeeRateRequest struct {
 		TokenID string `json:"token_id"`
+	}
+	ClobMarketInfoRequest struct {
+		ConditionID string `json:"condition_id"`
 	}
 	PricesHistoryRequest struct {
 		// Market is the condition ID (preferred by the API).
@@ -320,6 +327,23 @@ type (
 		BaseFee int64  `json:"base_fee,omitempty"`
 		FeeRate string `json:"fee_rate,omitempty"`
 	}
+	ClobMarketFeeDetails struct {
+		Rate      NumericString `json:"r"`
+		Exponent  NumericString `json:"e"`
+		TakerOnly bool          `json:"to"`
+	}
+	ClobMarketInfoToken struct {
+		TokenID string `json:"t"`
+		Outcome string `json:"o"`
+	}
+	ClobMarketInfoResponse struct {
+		MinimumTickSize  NumericString         `json:"mts"`
+		MinimumOrderSize NumericString         `json:"mos"`
+		FeeDetails       ClobMarketFeeDetails  `json:"fd"`
+		Tokens           []ClobMarketInfoToken `json:"t"`
+		RFQEnabled       bool                  `json:"rfqe"`
+		NegRisk          *bool                 `json:"neg_risk,omitempty"`
+	}
 	GeoblockResponse struct {
 		Blocked bool   `json:"blocked"`
 		IP      string `json:"ip"`
@@ -475,20 +499,29 @@ type (
 		Size  string `json:"size"`
 	}
 
+	// Order is the CTF Exchange order for CLOB v2.
 	Order struct {
-		// Define order fields
 		Salt          types.U256    `json:"salt"`
 		Signer        types.Address `json:"signer"`
 		Maker         types.Address `json:"maker"`
-		Taker         types.Address `json:"taker"`
 		TokenID       types.U256    `json:"token_id"`
 		MakerAmount   types.Decimal `json:"maker_amount"`
 		TakerAmount   types.Decimal `json:"taker_amount"`
-		Expiration    types.U256    `json:"expiration"`
-		Side          string        `json:"side"` // BUY/SELL
-		FeeRateBps    types.Decimal `json:"fee_rate_bps"`
-		Nonce         types.U256    `json:"nonce"`
+		Side          string        `json:"side"`                     // BUY/SELL
 		SignatureType *int          `json:"signature_type,omitempty"` // 0=EOA, 1=Proxy, 2=Safe
+		// Expiration is a JSON-only CLOB field for GTD orders and is not part of EIP-712 v2.
+		Expiration types.U256 `json:"-"`
+		// Timestamp is Unix time in milliseconds and replaces the v1 nonce for uniqueness.
+		Timestamp int64 `json:"-"`
+		// Metadata and Builder are EIP-712 bytes32 fields.
+		Metadata common.Hash `json:"-"`
+		Builder  common.Hash `json:"-"`
+		// NegRisk selects the neg-risk exchange verifying contract when the client has no token cache.
+		NegRisk *bool `json:"-"`
+		// Deprecated: CLOB v2 no longer signs or posts these fields.
+		Taker      types.Address `json:"-"`
+		FeeRateBps types.Decimal `json:"-"`
+		Nonce      types.U256    `json:"-"`
 	}
 
 	PriceHistoryPoint struct {
@@ -790,6 +823,44 @@ func unmarshalOrderResponseStringLike(data json.RawMessage, dest *string) error 
 
 	var number json.Number
 	if err := json.Unmarshal(trimmed, &number); err == nil {
+		*dest = number.String()
+		return nil
+	}
+
+	return fmt.Errorf("expected string or number, got %s", string(trimmed))
+}
+
+// UnmarshalJSON accepts string or numeric JSON values and stores their exact textual form.
+func (n *NumericString) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := unmarshalNumericStringLike(data, &value); err != nil {
+		return err
+	}
+	*n = NumericString(value)
+	return nil
+}
+
+// String returns the preserved numeric value.
+func (n NumericString) String() string {
+	return string(n)
+}
+
+func unmarshalNumericStringLike(data json.RawMessage, dest *string) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return nil
+	}
+
+	var value string
+	if err := json.Unmarshal(trimmed, &value); err == nil {
+		*dest = value
+		return nil
+	}
+
+	var number json.Number
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.UseNumber()
+	if err := decoder.Decode(&number); err == nil {
 		*dest = number.String()
 		return nil
 	}

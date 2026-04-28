@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"strings"
 
-	sdkerrors "github.com/GoPolymarket/polymarket-go-sdk/pkg/errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	sdkerrors "github.com/neor-it/polymarket-go-sdk/pkg/errors"
 )
 
 const (

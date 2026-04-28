@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 type stubClient struct {
@@ -12,6 +12,7 @@ type stubClient struct {
 
 	tickSize      float64
 	feeRate       int64
+	negRisk       bool
 	book          clobtypes.OrderBookResponse
 	orders        map[string]clobtypes.OrdersResponse
 	trades        map[string]clobtypes.TradesResponse
@@ -37,6 +38,14 @@ func (s *stubClient) TickSize(ctx context.Context, req *clobtypes.TickSizeReques
 
 func (s *stubClient) FeeRate(ctx context.Context, req *clobtypes.FeeRateRequest) (clobtypes.FeeRateResponse, error) {
 	return clobtypes.FeeRateResponse{BaseFee: s.feeRate}, nil
+}
+
+func (s *stubClient) NegRisk(ctx context.Context, req *clobtypes.NegRiskRequest) (clobtypes.NegRiskResponse, error) {
+	return clobtypes.NegRiskResponse{NegRisk: s.negRisk}, nil
+}
+
+func (s *stubClient) GetClobMarketInfo(ctx context.Context, conditionID string) (clobtypes.ClobMarketInfoResponse, error) {
+	return clobtypes.ClobMarketInfoResponse{}, nil
 }
 
 func (s *stubClient) Orders(ctx context.Context, req *clobtypes.OrdersRequest) (clobtypes.OrdersResponse, error) {

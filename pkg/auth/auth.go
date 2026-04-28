@@ -18,12 +18,12 @@ import (
 	"strings"
 	"time"
 
-	sdkerrors "github.com/GoPolymarket/polymarket-go-sdk/pkg/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	sdkerrors "github.com/neor-it/polymarket-go-sdk/pkg/errors"
 )
 
 // ClobAuthDomain is the EIP-712 domain used for CLOB authentication requests.
@@ -301,12 +301,17 @@ type BuilderRemoteConfig struct {
 type BuilderConfig struct {
 	Local  *BuilderCredentials
 	Remote *BuilderRemoteConfig
+	// Code is a public 0x-prefixed CLOB v2 builder code attached to signed orders.
+	Code string
 }
 
 // IsValid returns true if the configuration has sufficient credentials.
 func (c *BuilderConfig) IsValid() bool {
 	if c == nil {
 		return false
+	}
+	if strings.TrimSpace(c.Code) != "" {
+		return true
 	}
 	if c.Local != nil {
 		return c.Local.Key != "" && c.Local.Secret != "" && c.Local.Passphrase != ""
@@ -317,10 +322,21 @@ func (c *BuilderConfig) IsValid() bool {
 	return false
 }
 
+// UseHMACBuilderHeaders reports whether legacy builder HMAC headers should be attached.
+func (c *BuilderConfig) UseHMACBuilderHeaders() bool {
+	if c == nil || strings.TrimSpace(c.Code) != "" {
+		return false
+	}
+	return c.Local != nil || c.Remote != nil
+}
+
 // Headers returns the attribution headers for a given request.
 func (c *BuilderConfig) Headers(ctx context.Context, method, path string, body *string, timestamp int64) (http.Header, error) {
 	if c == nil {
 		return nil, ErrMissingBuilderConfig
+	}
+	if strings.TrimSpace(c.Code) != "" {
+		return nil, fmt.Errorf("auth: CLOB v2 builder code is set; use the signed order builder field")
 	}
 	if c.Local != nil {
 		return buildBuilderHeadersLocal(c.Local, method, path, body, timestamp)

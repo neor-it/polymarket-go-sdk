@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 // mockBackend implements bind.ContractBackend for testing.

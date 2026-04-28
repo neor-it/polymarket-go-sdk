@@ -9,10 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 func TestOrderManagementMethods(t *testing.T) {
@@ -212,6 +212,9 @@ func TestSignOrderDefaults(t *testing.T) {
 		signatureType: auth.SignatureProxy,
 		funder:        &funder,
 		saltGenerator: func() (*big.Int, error) { return big.NewInt(7), nil },
+		builderCfg: &auth.BuilderConfig{
+			Code: "0x0000000000000000000000000000000000000000000000000000000000000001",
+		},
 	}
 
 	order := &clobtypes.Order{
@@ -238,6 +241,35 @@ func TestSignOrderDefaults(t *testing.T) {
 	}
 	if signed.Order.Salt.Int == nil || signed.Order.Salt.Int.Int64() != 7 {
 		t.Fatalf("salt mismatch: got %v", signed.Order.Salt.Int)
+	}
+	if signed.Order.Timestamp == 0 {
+		t.Fatal("timestamp must be set for CLOB v2 orders")
+	}
+	if signed.Order.Builder != common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001") {
+		t.Fatalf("builder mismatch: got %s", signed.Order.Builder.Hex())
+	}
+}
+
+func TestSignOrderRejectsInvalidBuilderCode(t *testing.T) {
+	signer, _ := auth.NewPrivateKeySigner("0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318", 137)
+	apiKey := &auth.APIKey{Key: "k1", Secret: "s1", Passphrase: "p1"}
+
+	client := &clientImpl{
+		signer:     signer,
+		apiKey:     apiKey,
+		builderCfg: &auth.BuilderConfig{Code: "0x1234"},
+	}
+	order := &clobtypes.Order{
+		Side:        "BUY",
+		TokenID:     types.U256{Int: big.NewInt(1)},
+		MakerAmount: decimal.NewFromInt(10),
+		TakerAmount: decimal.NewFromInt(5),
+		Signer:      signer.Address(),
+	}
+
+	_, err := client.signOrder(order)
+	if err == nil || !strings.Contains(err.Error(), "builder code") {
+		t.Fatalf("expected builder code validation error, got %v", err)
 	}
 }
 

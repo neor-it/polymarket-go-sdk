@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/rtds"
+	"github.com/neor-it/polymarket-go-sdk/pkg/rtds"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 const defaultReplayLimit = 100

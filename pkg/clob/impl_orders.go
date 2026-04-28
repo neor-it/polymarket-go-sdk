@@ -7,11 +7,13 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
@@ -48,15 +50,15 @@ func (c *clientImpl) CreateOrderFromSignable(ctx context.Context, order *clobtyp
 }
 
 func (c *clientImpl) signOrder(order *clobtypes.Order) (*clobtypes.SignedOrder, error) {
-	return signOrderWithCreds(c.signer, c.apiKey, order, &c.signatureType, c.funder, c.saltGenerator)
+	return signOrderWithCreds(c.signer, c.apiKey, order, &c.signatureType, c.funder, c.saltGenerator, c)
 }
 
 // SignOrder builds an EIP-712 signature for the given order without posting it.
 func SignOrder(signer auth.Signer, apiKey *auth.APIKey, order *clobtypes.Order) (*clobtypes.SignedOrder, error) {
-	return signOrderWithCreds(signer, apiKey, order, nil, nil, nil)
+	return signOrderWithCreds(signer, apiKey, order, nil, nil, nil, nil)
 }
 
-func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtypes.Order, sigType *auth.SignatureType, funder *types.Address, saltGen SaltGenerator) (*clobtypes.SignedOrder, error) {
+func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtypes.Order, sigType *auth.SignatureType, funder *types.Address, saltGen SaltGenerator, c *clientImpl) (*clobtypes.SignedOrder, error) {
 	if signer == nil {
 		return nil, auth.ErrMissingSigner
 	}
@@ -94,11 +96,34 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		}
 	}
 
+	negRisk := false
+	if order.NegRisk != nil {
+		negRisk = *order.NegRisk
+	}
+	if c != nil && c.cache != nil && order.TokenID.Int != nil {
+		tokenID := order.TokenID.Int.String()
+		c.cache.mu.RLock()
+		if cached, ok := c.cache.negRisk[tokenID]; ok {
+			negRisk = cached
+		}
+		c.cache.mu.RUnlock()
+	}
+	if c != nil && order.Builder == (common.Hash{}) {
+		builder, err := c.builderV2Field()
+		if err != nil {
+			return nil, err
+		}
+		order.Builder = builder
+	}
+	if order.Timestamp == 0 {
+		order.Timestamp = time.Now().UnixMilli()
+	}
+
 	domain := &apitypes.TypedDataDomain{
 		Name:              "Polymarket CTF Exchange",
-		Version:           "1",
+		Version:           "2",
 		ChainId:           (*math.HexOrDecimal256)(signer.ChainID()),
-		VerifyingContract: "0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E", // Exchange Contract Address (Mainnet)
+		VerifyingContract: verifyingContractV2(negRisk),
 	}
 
 	typesDef := apitypes.Types{
@@ -112,15 +137,14 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 			{Name: "salt", Type: "uint256"},
 			{Name: "maker", Type: "address"},
 			{Name: "signer", Type: "address"},
-			{Name: "taker", Type: "address"},
 			{Name: "tokenId", Type: "uint256"},
 			{Name: "makerAmount", Type: "uint256"},
 			{Name: "takerAmount", Type: "uint256"},
-			{Name: "expiration", Type: "uint256"},
-			{Name: "nonce", Type: "uint256"},
-			{Name: "feeRateBps", Type: "uint256"},
 			{Name: "side", Type: "uint8"},
 			{Name: "signatureType", Type: "uint8"},
+			{Name: "timestamp", Type: "uint256"},
+			{Name: "metadata", Type: "bytes32"},
+			{Name: "builder", Type: "bytes32"},
 		},
 	}
 
@@ -143,24 +167,18 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		order.Salt = types.U256{Int: salt}
 	}
 
-	expiration := big.NewInt(0)
-	if order.Expiration.Int != nil {
-		expiration = order.Expiration.Int
-	}
-
 	message := apitypes.TypedDataMessage{
 		"salt":          (*math.HexOrDecimal256)(order.Salt.Int),
 		"maker":         order.Maker.String(),
 		"signer":        signer.Address().String(),
-		"taker":         order.Taker.String(),
 		"tokenId":       (*math.HexOrDecimal256)(order.TokenID.Int),
 		"makerAmount":   (*math.HexOrDecimal256)(order.MakerAmount.BigInt()),
 		"takerAmount":   (*math.HexOrDecimal256)(order.TakerAmount.BigInt()),
-		"expiration":    (*math.HexOrDecimal256)(expiration),
-		"nonce":         (*math.HexOrDecimal256)(order.Nonce.Int),
-		"feeRateBps":    (*math.HexOrDecimal256)(order.FeeRateBps.BigInt()),
 		"side":          (*math.HexOrDecimal256)(big.NewInt(int64(sideInt))),
 		"signatureType": (*math.HexOrDecimal256)(big.NewInt(int64(sigTypeVal))),
+		"timestamp":     (*math.HexOrDecimal256)(big.NewInt(order.Timestamp)),
+		"metadata":      order.Metadata.Hex(),
+		"builder":       order.Builder.Hex(),
 	}
 
 	sig, err := signer.SignTypedData(domain, typesDef, message, "Order")

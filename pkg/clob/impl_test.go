@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 func TestClientInitializationAndOptions(t *testing.T) {

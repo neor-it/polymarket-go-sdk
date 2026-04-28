@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 type staticDoer struct {
@@ -26,12 +26,12 @@ func (d *staticDoer) Do(req *http.Request) (*http.Response, error) {
 func TestRFQMethods(t *testing.T) {
 	doer := &staticDoer{
 		responses: map[string]string{
-			"/rfq/request":      `{"id":"r1"}`,
-			"/rfq/data/requests": `[]`,
-			"/rfq/quote":        `{"id":"q1"}`,
-			"/rfq/data/quotes":   `[]`,
+			"/rfq/request":         `{"id":"r1"}`,
+			"/rfq/data/requests":   `[]`,
+			"/rfq/quote":           `{"id":"q1"}`,
+			"/rfq/data/quotes":     `[]`,
 			"/rfq/data/best-quote": `{"id":"q1"}`,
-			"/rfq/config":       `{"status":"OK"}`,
+			"/rfq/config":          `{"status":"OK"}`,
 		},
 	}
 	client := NewClient(transport.NewClient(doer, "http://example"))

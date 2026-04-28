@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 const (
@@ -61,7 +61,7 @@ func NewClient(httpClient Doer, baseURL string) *Client {
 	return &Client{
 		httpClient: httpClient,
 		baseURL:    baseURL,
-		userAgent:  "github.com/GoPolymarket/polymarket-go-sdk/1.0",
+		userAgent:  "github.com/neor-it/polymarket-go-sdk/1.0",
 	}
 }
 
@@ -295,7 +295,7 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 			req.Header.Set(auth.HeaderPolyTimestamp, fmt.Sprintf("%d", ts))
 			req.Header.Set(auth.HeaderPolySignature, sig)
 
-			if c.builder != nil && c.builder.IsValid() {
+			if c.builder != nil && c.builder.UseHMACBuilderHeaders() {
 				builderHeaders, err := c.builder.Headers(ctx, method, signPath, serialized, ts)
 				if err != nil {
 					return fmt.Errorf("failed to build builder headers: %w", err)

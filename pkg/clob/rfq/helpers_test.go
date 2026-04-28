@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"

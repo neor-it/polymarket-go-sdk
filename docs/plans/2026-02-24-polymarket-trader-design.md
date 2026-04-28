@@ -30,7 +30,7 @@ polymarket-trader/
 ├── config.yaml               # Default config template
 ├── Dockerfile                 # Multi-stage build
 ├── docker-compose.yml         # One-click: trader + optional signer-server
-├── go.mod                     # depends on github.com/GoPolymarket/polymarket-go-sdk
+├── go.mod                     # depends on github.com/neor-it/polymarket-go-sdk
 └── Makefile                   # build / run / docker shortcuts
 ```
 
@@ -235,6 +235,6 @@ CLI flags > Environment variables > config.yaml > Defaults
 
 ## Dependencies
 
-- `github.com/GoPolymarket/polymarket-go-sdk` — CLOB, WS, Auth, Builder
+- `github.com/neor-it/polymarket-go-sdk` — CLOB, WS, Auth, Builder
 - `gopkg.in/yaml.v3` — config parsing
 - No other frameworks

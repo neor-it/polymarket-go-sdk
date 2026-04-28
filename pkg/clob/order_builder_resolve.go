@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 )
 
 func (b *OrderBuilder) resolveTickSize(ctx context.Context, tokenID string) (decimal.Decimal, error) {
@@ -81,6 +81,17 @@ func (b *OrderBuilder) resolveFeeRateBps(ctx context.Context, tokenID string) (i
 		return marketFee, nil
 	}
 	return userFee, nil
+}
+
+func (b *OrderBuilder) resolveNegRisk(ctx context.Context, tokenID string) (bool, error) {
+	if !clientHasTransport(b.client) {
+		return false, nil
+	}
+	resp, err := b.client.NegRisk(ctx, &clobtypes.NegRiskRequest{TokenID: tokenID})
+	if err != nil {
+		return false, fmt.Errorf("neg-risk lookup failed: %w", err)
+	}
+	return resp.NegRisk, nil
 }
 
 func (b *OrderBuilder) resolveMarketPrice(ctx context.Context, side string, orderType clobtypes.OrderType, amount *marketAmount) (decimal.Decimal, error) {

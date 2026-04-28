@@ -6,12 +6,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/heartbeat"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/rfq"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/heartbeat"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/rfq"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
 // Client defines the primary interface for interacting with the Polymarket CLOB.
@@ -70,6 +70,8 @@ type Client interface {
 	MarketsAll(ctx context.Context, req *clobtypes.MarketsRequest) ([]clobtypes.Market, error)
 	// Market retrieves detailed information for a single market by its ID.
 	Market(ctx context.Context, id string) (clobtypes.MarketResponse, error)
+	// GetClobMarketInfo retrieves V2 CLOB market parameters by condition ID.
+	GetClobMarketInfo(ctx context.Context, conditionID string) (clobtypes.ClobMarketInfoResponse, error)
 	// SimplifiedMarkets retrieves a simplified view of available markets.
 	SimplifiedMarkets(ctx context.Context, req *clobtypes.MarketsRequest) (clobtypes.MarketsResponse, error)
 	// SamplingMarkets retrieves a sampled list of markets.

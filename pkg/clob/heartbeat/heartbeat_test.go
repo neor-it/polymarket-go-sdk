@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 type staticDoer struct {

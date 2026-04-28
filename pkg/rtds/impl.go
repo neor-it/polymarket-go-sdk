@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	sdkerrors "github.com/GoPolymarket/polymarket-go-sdk/pkg/errors"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/logger"
 	"github.com/gorilla/websocket"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	sdkerrors "github.com/neor-it/polymarket-go-sdk/pkg/errors"
+	"github.com/neor-it/polymarket-go-sdk/pkg/logger"
 )
 
 const (

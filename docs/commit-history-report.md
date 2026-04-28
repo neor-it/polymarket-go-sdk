@@ -1,6 +1,6 @@
 # Commit History Analysis Report
 
-**Repository:** github.com/GoPolymarket/polymarket-go-sdk
+**Repository:** github.com/neor-it/polymarket-go-sdk
 **Analysis Date:** 2026-02-19
 **Branch:** main
 

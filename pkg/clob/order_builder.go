@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
-// OrderBuilder helps construct valid orders with correct addresses and nonces.
+// OrderBuilder helps construct valid CLOB V2 orders with correct addresses and timestamps.
 type OrderBuilder struct {
 	client Client
 	signer auth.Signer
@@ -113,13 +114,13 @@ func (b *OrderBuilder) SizeDec(size decimal.Decimal) *OrderBuilder {
 	return b
 }
 
-// FeeRateBps sets the fee rate in basis points using a float64 (default 0).
+// FeeRateBps is kept for v1 source compatibility and is ignored by CLOB V2 orders.
 func (b *OrderBuilder) FeeRateBps(bps float64) *OrderBuilder {
 	b.feeRateBps = decimal.NewFromFloat(bps)
 	return b
 }
 
-// FeeRateBpsDec sets the fee rate in basis points using a decimal.Decimal.
+// FeeRateBpsDec is kept for v1 source compatibility and is ignored by CLOB V2 orders.
 func (b *OrderBuilder) FeeRateBpsDec(bps decimal.Decimal) *OrderBuilder {
 	b.feeRateBps = bps
 	return b
@@ -131,7 +132,7 @@ func (b *OrderBuilder) TickSize(tickSize float64) *OrderBuilder {
 	return b
 }
 
-// Nonce overrides the order nonce.
+// Nonce is kept for v1 source compatibility and is ignored by CLOB V2 orders.
 func (b *OrderBuilder) Nonce(nonce *big.Int) *OrderBuilder {
 	b.nonce = nonce
 	return b
@@ -143,7 +144,7 @@ func (b *OrderBuilder) Maker(maker common.Address) *OrderBuilder {
 	return b
 }
 
-// Taker overrides the taker address.
+// Taker is kept for v1 source compatibility and is ignored by CLOB V2 orders.
 func (b *OrderBuilder) Taker(taker common.Address) *OrderBuilder {
 	b.taker = &taker
 	return b
@@ -287,6 +288,10 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 	if err != nil {
 		return nil, err
 	}
+	negRisk, err := b.resolveNegRisk(ctx, b.tokenID)
+	if err != nil {
+		return nil, err
+	}
 	tickScale := decimalPlaces(tickSize)
 
 	var price decimal.Decimal
@@ -309,11 +314,6 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 	one := decimal.NewFromInt(1)
 	if price.LessThan(tickSize) || price.GreaterThan(one.Sub(tickSize)) {
 		return nil, fmt.Errorf("price %s is out of bounds for tick size %s", price.String(), tickSize.String())
-	}
-
-	feeRateBps, err := b.resolveFeeRateBps(ctx, b.tokenID)
-	if err != nil {
-		return nil, err
 	}
 
 	truncScale := tickScale + lotSizeScale
@@ -361,34 +361,29 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 		maker = derived
 	}
 
-	taker := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	if b.taker != nil {
-		taker = *b.taker
-	}
-
-	nonce := big.NewInt(0)
-	if b.nonce != nil {
-		nonce = b.nonce
-	}
-
 	salt, err := b.generateSalt()
 	if err != nil {
 		return nil, err
 	}
 
+	metadata, builder, err := b.v2MetadataAndBuilder()
+	if err != nil {
+		return nil, err
+	}
 	order := &clobtypes.Order{
 		Salt:          types.U256{Int: salt},
 		Signer:        b.signer.Address(),
 		Maker:         maker,
-		Taker:         taker,
 		TokenID:       types.U256{Int: tokenIDInt},
 		MakerAmount:   types.Decimal(makerFixed),
 		TakerAmount:   types.Decimal(takerFixed),
 		Expiration:    types.U256{Int: big.NewInt(0)},
 		Side:          side,
-		FeeRateBps:    types.Decimal(decimal.NewFromInt(feeRateBps)),
-		Nonce:         types.U256{Int: nonce},
 		SignatureType: &sigType,
+		Timestamp:     time.Now().UnixMilli(),
+		Metadata:      metadata,
+		Builder:       builder,
+		NegRisk:       &negRisk,
 	}
 
 	return &clobtypes.SignableOrder{
@@ -424,6 +419,10 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 	if err != nil {
 		return nil, err
 	}
+	negRisk, err := b.resolveNegRisk(ctx, b.tokenID)
+	if err != nil {
+		return nil, err
+	}
 	tickScale := decimalPlaces(tickSize)
 
 	price := b.price
@@ -441,11 +440,6 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 	}
 	if size.Sign() <= 0 {
 		return nil, fmt.Errorf("size must be positive")
-	}
-
-	feeRateBps, err := b.resolveFeeRateBps(ctx, b.tokenID)
-	if err != nil {
-		return nil, err
 	}
 
 	truncScale := tickScale + lotSizeScale
@@ -485,16 +479,6 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 		maker = derived
 	}
 
-	taker := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	if b.taker != nil {
-		taker = *b.taker
-	}
-
-	nonce := big.NewInt(0)
-	if b.nonce != nil {
-		nonce = b.nonce
-	}
-
 	salt, err := b.generateSalt()
 	if err != nil {
 		return nil, err
@@ -508,18 +492,34 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 		expiration = b.expiration
 	}
 
+	metadata, builder, err := b.v2MetadataAndBuilder()
+	if err != nil {
+		return nil, err
+	}
 	return &clobtypes.Order{
 		Salt:          types.U256{Int: salt},
 		Signer:        b.signer.Address(),
 		Maker:         maker,
-		Taker:         taker,
 		TokenID:       types.U256{Int: tokenIDInt},
 		MakerAmount:   types.Decimal(makerFixed),
 		TakerAmount:   types.Decimal(takerFixed),
 		Expiration:    types.U256{Int: expiration},
 		Side:          side,
-		FeeRateBps:    types.Decimal(decimal.NewFromInt(feeRateBps)),
-		Nonce:         types.U256{Int: nonce},
 		SignatureType: &sigType,
+		Timestamp:     time.Now().UnixMilli(),
+		Metadata:      metadata,
+		Builder:       builder,
+		NegRisk:       &negRisk,
 	}, nil
+}
+
+func (b *OrderBuilder) v2MetadataAndBuilder() (common.Hash, common.Hash, error) {
+	if impl, ok := b.client.(*clientImpl); ok {
+		builder, err := impl.builderV2Field()
+		if err != nil {
+			return common.Hash{}, common.Hash{}, err
+		}
+		return common.Hash{}, builder, nil
+	}
+	return common.Hash{}, common.Hash{}, nil
 }

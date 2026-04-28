@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"

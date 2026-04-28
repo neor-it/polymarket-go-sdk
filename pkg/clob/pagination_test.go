@@ -5,15 +5,15 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/transport"
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
 
 func TestOrdersAllPagination(t *testing.T) {
 	doer := &staticDoer{
 		responses: map[string]string{
 			buildKey("/data/orders", url.Values{"limit": {"1"}, "next_cursor": {clobtypes.InitialCursor}}): `{"data":[{"id":"1"}],"next_cursor":"NEXT"}`,
-			buildKey("/data/orders", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):        `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
+			buildKey("/data/orders", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):                  `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
 		},
 	}
 	client := &clientImpl{
@@ -34,7 +34,7 @@ func TestTradesAllPagination(t *testing.T) {
 	doer := &staticDoer{
 		responses: map[string]string{
 			buildKey("/data/trades", url.Values{"limit": {"1"}, "next_cursor": {clobtypes.InitialCursor}}): `{"data":[{"id":"1"}],"next_cursor":"NEXT"}`,
-			buildKey("/data/trades", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):        `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
+			buildKey("/data/trades", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):                  `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
 		},
 	}
 	client := &clientImpl{
@@ -55,7 +55,7 @@ func TestBuilderTradesAllPagination(t *testing.T) {
 	doer := &staticDoer{
 		responses: map[string]string{
 			buildKey("/builder/trades", url.Values{"limit": {"1"}, "next_cursor": {clobtypes.InitialCursor}}): `{"data":[{"id":"1"}],"next_cursor":"NEXT"}`,
-			buildKey("/builder/trades", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):        `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
+			buildKey("/builder/trades", url.Values{"limit": {"1"}, "next_cursor": {"NEXT"}}):                  `{"data":[{"id":"2"}],"next_cursor":"LTE="}`,
 		},
 	}
 	client := &clientImpl{

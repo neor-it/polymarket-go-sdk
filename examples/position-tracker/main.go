@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	polymarket "github.com/GoPolymarket/polymarket-go-sdk"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/data"
+	polymarket "github.com/neor-it/polymarket-go-sdk"
+	"github.com/neor-it/polymarket-go-sdk/pkg/data"
 
 	"github.com/ethereum/go-ethereum/common"
 )
