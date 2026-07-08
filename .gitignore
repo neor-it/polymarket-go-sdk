@@ -16,6 +16,13 @@
 coverage*
 /coverage/
 
+# Compiled binaries built from cmd/* at the repo root
+/bot
+/complete
+/polymarket-bot
+/signer-server
+/acceptance
+
 # Go workspace files
 /go.work
 /go.work.sum

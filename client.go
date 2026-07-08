@@ -12,6 +12,7 @@ import (
 	"github.com/neor-it/polymarket-go-sdk/pkg/ctf"
 	"github.com/neor-it/polymarket-go-sdk/pkg/data"
 	"github.com/neor-it/polymarket-go-sdk/pkg/gamma"
+	"github.com/neor-it/polymarket-go-sdk/pkg/relayer"
 	"github.com/neor-it/polymarket-go-sdk/pkg/rtds"
 	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
@@ -20,13 +21,14 @@ import (
 type Client struct {
 	Config Config
 
-	CLOB   clob.Client
-	CLOBWS ws.Client
-	Gamma  gamma.Client
-	Data   data.Client
-	Bridge bridge.Client
-	RTDS   rtds.Client
-	CTF    ctf.Client
+	CLOB    clob.Client
+	CLOBWS  ws.Client
+	Gamma   gamma.Client
+	Data    data.Client
+	Bridge  bridge.Client
+	RTDS    rtds.Client
+	CTF     ctf.Client
+	Relayer relayer.Client
 
 	builderCfg *auth.BuilderConfig
 	InitErrors []error
@@ -111,6 +113,15 @@ func newClient(strict bool, opts ...Option) (*Client, error) {
 	if c.CTF == nil {
 		c.CTF = ctf.NewClient()
 	}
+	if c.Relayer == nil {
+		relayerURL := c.Config.BaseURLs.Relayer
+		if relayerURL == "" {
+			relayerURL = relayer.DefaultURL
+		}
+		relayerTransport := transport.NewClient(c.Config.HTTPClient, relayerURL)
+		relayerTransport.SetUserAgent(c.Config.UserAgent)
+		c.Relayer = relayer.NewClient(relayerTransport)
+	}
 	if c.CLOBWS == nil {
 		// Default WS URL
 		wsURL := c.Config.BaseURLs.CLOBWS
@@ -126,8 +137,13 @@ func newClient(strict bool, opts ...Option) (*Client, error) {
 	}
 
 	// 5. Apply builder attribution if configured
-	if c.builderCfg != nil && c.CLOB != nil {
-		c.CLOB = c.CLOB.WithBuilderConfig(c.builderCfg)
+	if c.builderCfg != nil {
+		if c.CLOB != nil {
+			c.CLOB = c.CLOB.WithBuilderConfig(c.builderCfg)
+		}
+		if c.Relayer != nil {
+			c.Relayer = c.Relayer.WithBuilderConfig(c.builderCfg)
+		}
 	}
 
 	if strict && len(c.InitErrors) > 0 {
@@ -150,6 +166,9 @@ func (c *Client) WithAuth(signer auth.Signer, apiKey *auth.APIKey) *Client {
 	next := *c
 	if c.CLOB != nil {
 		next.CLOB = c.CLOB.WithAuth(signer, apiKey)
+	}
+	if c.Relayer != nil {
+		next.Relayer = c.Relayer.WithSigner(signer)
 	}
 	if c.CLOBWS != nil {
 		if cloner, ok := c.CLOBWS.(wsCloner); ok {

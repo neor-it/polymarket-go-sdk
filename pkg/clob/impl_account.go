@@ -3,9 +3,12 @@ package clob
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
 	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -224,17 +227,14 @@ func (c *clientImpl) CreateAPIKeyWithNonce(ctx context.Context, nonce int64) (cl
 		return clobtypes.APIKeyResponse{}, err
 	}
 
-	headers := map[string]string{
-		auth.HeaderPolyAddress:   headersRaw.Get(auth.HeaderPolyAddress),
-		auth.HeaderPolyTimestamp: headersRaw.Get(auth.HeaderPolyTimestamp),
-		auth.HeaderPolyNonce:     headersRaw.Get(auth.HeaderPolyNonce),
-		auth.HeaderPolySignature: headersRaw.Get(auth.HeaderPolySignature),
-	}
+	headers := l1HeadersToMap(headersRaw)
 
+	return c.CreateAPIKeyWithL1Headers(ctx, headers)
+}
+
+func (c *clientImpl) CreateAPIKeyWithL1Headers(ctx context.Context, headers map[string]string) (clobtypes.APIKeyResponse, error) {
 	var resp clobtypes.APIKeyResponse
-	// Note: We use CallWithHeaders to inject L1 headers.
-	// clobtypes.CreateAPIKey uses POST /auth/api-key
-	err = c.httpClient.CallWithHeaders(ctx, "POST", "/auth/api-key", nil, nil, &resp, headers)
+	err := c.httpClient.CallWithHeaders(ctx, "POST", "/auth/api-key", nil, nil, &resp, headers)
 	return resp, mapError(err)
 }
 
@@ -267,18 +267,17 @@ func (c *clientImpl) DeriveAPIKey(ctx context.Context) (clobtypes.APIKeyResponse
 }
 
 func (c *clientImpl) DeriveAPIKeyWithNonce(ctx context.Context, nonce int64) (clobtypes.APIKeyResponse, error) {
-	var resp clobtypes.APIKeyResponse
 	headersRaw, err := auth.BuildL1Headers(c.signer, 0, nonce)
 	if err != nil {
 		return clobtypes.APIKeyResponse{}, err
 	}
-	headers := map[string]string{
-		auth.HeaderPolyAddress:   headersRaw.Get(auth.HeaderPolyAddress),
-		auth.HeaderPolyTimestamp: headersRaw.Get(auth.HeaderPolyTimestamp),
-		auth.HeaderPolyNonce:     headersRaw.Get(auth.HeaderPolyNonce),
-		auth.HeaderPolySignature: headersRaw.Get(auth.HeaderPolySignature),
-	}
-	err = c.httpClient.CallWithHeaders(ctx, "GET", "/auth/derive-api-key", nil, nil, &resp, headers)
+	headers := l1HeadersToMap(headersRaw)
+	return c.DeriveAPIKeyWithL1Headers(ctx, headers)
+}
+
+func (c *clientImpl) DeriveAPIKeyWithL1Headers(ctx context.Context, headers map[string]string) (clobtypes.APIKeyResponse, error) {
+	var resp clobtypes.APIKeyResponse
+	err := c.httpClient.CallWithHeaders(ctx, "GET", "/auth/derive-api-key", nil, nil, &resp, headers)
 	return resp, mapError(err)
 }
 
@@ -296,6 +295,73 @@ func (c *clientImpl) CreateOrDeriveAPIKeyWithNonce(ctx context.Context, nonce in
 		return resp, nil
 	}
 	return c.DeriveAPIKeyWithNonce(ctx, nonce)
+}
+
+func (c *clientImpl) CreateOrDeriveAPIKeyWithExternalSignature(ctx context.Context, authAddress string, timestamp, nonce int64, signatureHex string) (clobtypes.APIKeyResponse, error) {
+	headers, err := BuildExternalL1HeadersWithSignatureType(authAddress, timestamp, nonce, signatureHex, auth.SignatureEOA)
+	if err != nil {
+		return clobtypes.APIKeyResponse{}, err
+	}
+
+	resp, createErr := c.CreateAPIKeyWithL1Headers(ctx, headers)
+	if createErr == nil {
+		return resp, nil
+	}
+
+	resp, deriveErr := c.DeriveAPIKeyWithL1Headers(ctx, headers)
+	if deriveErr != nil {
+		return clobtypes.APIKeyResponse{}, fmt.Errorf("create api key failed (%w); derive api key failed: %v", createErr, deriveErr)
+	}
+	if resp.APIKey == "" || resp.Secret == "" {
+		return clobtypes.APIKeyResponse{}, fmt.Errorf("derive api key returned incomplete credentials")
+	}
+	return resp, nil
+}
+
+// BuildExternalL1Headers converts an externally produced ClobAuth signature into
+// the L1 auth headers required by the CLOB API key endpoints.
+func BuildExternalL1Headers(authAddress string, timestamp, nonce int64, signatureHex string) (map[string]string, error) {
+	return BuildExternalL1HeadersWithSignatureType(authAddress, timestamp, nonce, signatureHex, auth.SignatureEOA)
+}
+
+// BuildExternalL1HeadersWithSignatureType converts an externally produced
+// ClobAuth signature into CLOB L1 auth headers and includes the wallet
+// signature type for non-EOA authentication such as POLY_1271 deposit wallets.
+func BuildExternalL1HeadersWithSignatureType(authAddress string, timestamp, nonce int64, signatureHex string, signatureType auth.SignatureType) (map[string]string, error) {
+	if !common.IsHexAddress(authAddress) {
+		return nil, fmt.Errorf("invalid auth address: %q", authAddress)
+	}
+	signature := strings.TrimSpace(signatureHex)
+	if signature == "" {
+		return nil, fmt.Errorf("signature is required")
+	}
+	if !strings.HasPrefix(signature, "0x") {
+		signature = "0x" + signature
+	}
+
+	headers := map[string]string{
+		auth.HeaderPolyAddress:   common.HexToAddress(authAddress).Hex(),
+		auth.HeaderPolyTimestamp: strconv.FormatInt(timestamp, 10),
+		auth.HeaderPolyNonce:     strconv.FormatInt(nonce, 10),
+		auth.HeaderPolySignature: signature,
+	}
+	if signatureType != auth.SignatureEOA {
+		headers[auth.HeaderPolySignatureType] = strconv.Itoa(int(signatureType))
+	}
+	return headers, nil
+}
+
+func l1HeadersToMap(headersRaw http.Header) map[string]string {
+	headers := map[string]string{
+		auth.HeaderPolyAddress:   headersRaw.Get(auth.HeaderPolyAddress),
+		auth.HeaderPolyTimestamp: headersRaw.Get(auth.HeaderPolyTimestamp),
+		auth.HeaderPolyNonce:     headersRaw.Get(auth.HeaderPolyNonce),
+		auth.HeaderPolySignature: headersRaw.Get(auth.HeaderPolySignature),
+	}
+	if signatureType := headersRaw.Get(auth.HeaderPolySignatureType); signatureType != "" {
+		headers[auth.HeaderPolySignatureType] = signatureType
+	}
+	return headers
 }
 
 func (c *clientImpl) ClosedOnlyStatus(ctx context.Context) (clobtypes.ClosedOnlyResponse, error) {

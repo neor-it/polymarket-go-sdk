@@ -1,6 +1,7 @@
 package clob
 
 import (
+	"encoding/json"
 	"math/big"
 	"strings"
 	"testing"
@@ -135,6 +136,53 @@ func TestBuildOrderPayloadRequiresSignatureAndOwner(t *testing.T) {
 	_, err := buildOrderPayload(&order)
 	if err == nil || !strings.Contains(err.Error(), "signature") {
 		t.Fatalf("expected signature validation error, got %v", err)
+	}
+}
+
+func TestBuildOrderPayloadPoly1271Compatibility(t *testing.T) {
+	sigType := 3
+	salt := big.NewInt(123)
+	order := clobtypes.SignedOrder{
+		Order: clobtypes.Order{
+			Salt:          types.U256{Int: salt},
+			Maker:         common.HexToAddress("0x9c90cad2e22a1E9b4a9aB3F95f7f14d08Ce78ade"),
+			Signer:        common.HexToAddress("0x9c90cad2e22a1E9b4a9aB3F95f7f14d08Ce78ade"),
+			TokenID:       types.U256{Int: big.NewInt(999)},
+			MakerAmount:   decimal.NewFromInt(5_000_000),
+			TakerAmount:   decimal.NewFromInt(10_000_000),
+			Side:          "BUY",
+			Expiration:    types.U256{Int: big.NewInt(0)},
+			SignatureType: &sigType,
+			Timestamp:     1700000000123,
+		},
+		Signature: "0xWrappedSig",
+		Owner:     "api-key",
+		OrderType: clobtypes.OrderTypeGTC,
+	}
+
+	payload, err := buildOrderPayload(&order)
+	if err != nil {
+		t.Fatalf("buildOrderPayload failed: %v", err)
+	}
+
+	// POLY_1271 orders must always include deferExec: false.
+	if deferExec, ok := payload["deferExec"]; !ok || deferExec != false {
+		t.Fatalf("deferExec must be false for POLY_1271, got %v", payload["deferExec"])
+	}
+
+	orderMap, ok := payload["order"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing order map in payload")
+	}
+
+	// Salt must be a json.Number for POLY_1271.
+	if saltVal, ok := orderMap["salt"].(json.Number); !ok || saltVal != "123" {
+		t.Fatalf("salt must be json.Number(\"123\"), got %T(%v)", orderMap["salt"], orderMap["salt"])
+	}
+
+	// Timestamp must be serialized as a decimal string.
+	if ts, ok := orderMap["timestamp"].(string); !ok || ts != "1700000000123" {
+		t.Fatalf("timestamp must be \"1700000000123\", got %v", orderMap["timestamp"])
 	}
 }
 

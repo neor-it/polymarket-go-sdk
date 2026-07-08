@@ -19,9 +19,18 @@ import (
 // Default timeout for KMS operations
 const defaultKMSTimeout = 10 * time.Second
 
+// KMSClient is the minimal subset of the AWS KMS API used by AWSSigner.
+// The concrete *kms.Client from aws-sdk-go-v2 satisfies this interface, and it
+// can be replaced with a fake in tests to exercise the signing path end-to-end
+// without contacting AWS.
+type KMSClient interface {
+	Sign(ctx context.Context, params *kms.SignInput, optFns ...func(*kms.Options)) (*kms.SignOutput, error)
+	GetPublicKey(ctx context.Context, params *kms.GetPublicKeyInput, optFns ...func(*kms.Options)) (*kms.GetPublicKeyOutput, error)
+}
+
 // AWSSigner implements auth.Signer using AWS KMS.
 type AWSSigner struct {
-	client  *kms.Client
+	client  KMSClient
 	keyID   string
 	chainID *big.Int
 	pubKey  *ecdsa.PublicKey
@@ -31,12 +40,12 @@ type AWSSigner struct {
 
 // NewAWSSigner creates a new signer backed by an AWS KMS key.
 // It fetches the public key from KMS to compute the address.
-func NewAWSSigner(ctx context.Context, client *kms.Client, keyID string, chainID int64) (*AWSSigner, error) {
+func NewAWSSigner(ctx context.Context, client KMSClient, keyID string, chainID int64) (*AWSSigner, error) {
 	return NewAWSSignerWithTimeout(ctx, client, keyID, chainID, defaultKMSTimeout)
 }
 
 // NewAWSSignerWithTimeout creates a new signer with a custom timeout for KMS operations.
-func NewAWSSignerWithTimeout(ctx context.Context, client *kms.Client, keyID string, chainID int64, timeout time.Duration) (*AWSSigner, error) {
+func NewAWSSignerWithTimeout(ctx context.Context, client KMSClient, keyID string, chainID int64, timeout time.Duration) (*AWSSigner, error) {
 	pubKeyResp, err := client.GetPublicKey(ctx, &kms.GetPublicKeyInput{
 		KeyId: &keyID,
 	})
@@ -89,10 +98,29 @@ func (s *AWSSigner) SignTypedData(domain *apitypes.TypedDataDomain, typesDef api
 		return nil, fmt.Errorf("failed to hash typed data: %w", err)
 	}
 
+	return s.signHash(sighash)
+}
+
+// SignDigest signs a raw 32-byte digest using AWS KMS. It is required for
+// POLY_1271 order signing and relayer wallet-batch signing, both of which build
+// their own EIP-712 digest rather than going through the apitypes helper.
+func (s *AWSSigner) SignDigest(digest []byte) ([]byte, error) {
+	if len(digest) != 32 {
+		return nil, fmt.Errorf("digest must be 32 bytes, got %d", len(digest))
+	}
+	return s.signHash(digest)
+}
+
+// signHash signs a 32-byte hash with KMS and returns a 65-byte [R || S || V]
+// Ethereum signature. It performs the KMS sign call, unwraps the ASN.1 (R, S)
+// pair, canonicalizes S to the lower half-order, recovers the V parity, and
+// offsets V by 27. Both SignTypedData and SignDigest funnel through here so the
+// canonicalization/recovery logic has a single implementation.
+func (s *AWSSigner) signHash(hash []byte) ([]byte, error) {
 	// Sign with KMS using a timeout context
 	signInput := &kms.SignInput{
 		KeyId:            &s.keyID,
-		Message:          sighash,
+		Message:          hash,
 		MessageType:      types.MessageTypeDigest,
 		SigningAlgorithm: types.SigningAlgorithmSpecEcdsaSha256,
 	}
@@ -141,7 +169,7 @@ func (s *AWSSigner) SignTypedData(domain *apitypes.TypedDataDomain, typesDef api
 	for _, candidateV := range []byte{0, 1} {
 		sigBytes[64] = candidateV
 		// Ecrecover expects [R || S || V] where V is 0 or 1
-		pubKeyBytes, err := crypto.Ecrecover(sighash, sigBytes)
+		pubKeyBytes, err := crypto.Ecrecover(hash, sigBytes)
 		if err == nil {
 			recoveredPub, err := crypto.UnmarshalPubkey(pubKeyBytes)
 			if err == nil {

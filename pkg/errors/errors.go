@@ -17,6 +17,7 @@ const (
 	CodeMissingBuilderConfig ErrorCode = "AUTH-003"
 	CodeInvalidSignature     ErrorCode = "AUTH-004"
 	CodeUnauthorized         ErrorCode = "AUTH-005"
+	CodeExternalSignature    ErrorCode = "AUTH-006"
 
 	// Wallet derivation error codes (WALLET-xxx)
 	CodeProxyWalletUnsupported ErrorCode = "WALLET-001"
@@ -102,6 +103,8 @@ var (
 	ErrInvalidSignature = New(CodeInvalidSignature, "invalid signature")
 	// ErrUnauthorized is returned when authentication fails.
 	ErrUnauthorized = New(CodeUnauthorized, "unauthorized")
+	// ErrExternalSignatureRequired is returned when a browser/user wallet must sign.
+	ErrExternalSignatureRequired = New(CodeExternalSignature, "external signature required")
 )
 
 // Wallet derivation errors

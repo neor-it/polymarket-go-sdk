@@ -119,6 +119,46 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		order.Timestamp = time.Now().UnixMilli()
 	}
 
+	sideInt := 0
+	if strings.ToUpper(order.Side) == "SELL" {
+		sideInt = 1
+	}
+
+	if order.Salt.Int == nil || order.Salt.Int.Sign() == 0 {
+		var salt *big.Int
+		var err error
+		if saltGen != nil {
+			salt, err = saltGen()
+		} else {
+			salt, err = generateSalt()
+		}
+		if err != nil {
+			return nil, err
+		}
+		order.Salt = types.U256{Int: salt}
+	}
+
+	// POLY_1271: sign with the ERC-7739 wrapped scheme and return early.
+	// Both maker and signer on the order must be the deposit wallet address.
+	if sigTypeVal == int(auth.SignaturePoly1271) {
+		if order.Signer == (types.Address{}) || order.Signer == signer.Address() {
+			order.Signer = order.Maker
+		}
+		sig, err := signPoly1271Order(signer, order)
+		if err != nil {
+			return nil, fmt.Errorf("POLY_1271 signing failed: %w", err)
+		}
+		owner := apiKey.Key
+		if owner == "" {
+			owner = signer.Address().String()
+		}
+		return &clobtypes.SignedOrder{
+			Order:     *order,
+			Signature: hexutil.Encode(sig),
+			Owner:     owner,
+		}, nil
+	}
+
 	domain := &apitypes.TypedDataDomain{
 		Name:              "Polymarket CTF Exchange",
 		Version:           "2",
@@ -148,29 +188,10 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		},
 	}
 
-	sideInt := 0
-	if strings.ToUpper(order.Side) == "SELL" {
-		sideInt = 1
-	}
-
-	if order.Salt.Int == nil || order.Salt.Int.Sign() == 0 {
-		var salt *big.Int
-		var err error
-		if saltGen != nil {
-			salt, err = saltGen()
-		} else {
-			salt, err = generateSalt()
-		}
-		if err != nil {
-			return nil, err
-		}
-		order.Salt = types.U256{Int: salt}
-	}
-
 	message := apitypes.TypedDataMessage{
 		"salt":          (*math.HexOrDecimal256)(order.Salt.Int),
 		"maker":         order.Maker.String(),
-		"signer":        signer.Address().String(),
+		"signer":        order.Signer.String(),
 		"tokenId":       (*math.HexOrDecimal256)(order.TokenID.Int),
 		"makerAmount":   (*math.HexOrDecimal256)(order.MakerAmount.BigInt()),
 		"takerAmount":   (*math.HexOrDecimal256)(order.TakerAmount.BigInt()),

@@ -18,6 +18,7 @@ type BaseURLs struct {
 	Bridge   string
 	RTDS     string
 	CTF      string
+	Relayer  string
 }
 
 // Config holds shared SDK configuration.
@@ -43,6 +44,7 @@ func DefaultConfig() Config {
 			Bridge:   "https://bridge.polymarket.com",
 			RTDS:     "wss://ws-live-data.polymarket.com",
 			CTF:      "",
+			Relayer:  "https://relayer-v2.polymarket.com",
 		},
 		UserAgent:     "github.com/neor-it/polymarket-go-sdk",
 		Timeout:       30 * time.Second,

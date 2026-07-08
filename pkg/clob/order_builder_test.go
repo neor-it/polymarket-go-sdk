@@ -267,6 +267,41 @@ func TestOrderBuilderDefaultsFromClient(t *testing.T) {
 	}
 }
 
+func TestOrderBuilderPoly1271UsesFunderAsSigner(t *testing.T) {
+	stub := newStubClient()
+	stub.tickSize = 0.01
+	stub.feeRate = 0
+
+	signer := mustSigner(t)
+	funder := common.HexToAddress("0x9c90cad2e22a1E9b4a9aB3F95f7f14d08Ce78ade")
+	poly1271 := auth.SignaturePoly1271
+	stub.clientImpl.signatureType = poly1271
+	stub.clientImpl.funder = &funder
+
+	order, err := NewOrderBuilder(stub, signer).
+		TokenID("123").
+		Side("BUY").
+		Price(0.5).
+		Size(10).
+		BuildWithContext(context.Background())
+	if err != nil {
+		t.Fatalf("Build failed: %v", err)
+	}
+
+	if order.SignatureType == nil || *order.SignatureType != 3 {
+		t.Fatalf("signature type mismatch: %+v", order.SignatureType)
+	}
+	if order.Maker != funder {
+		t.Fatalf("maker mismatch: got %s want %s", order.Maker.Hex(), funder.Hex())
+	}
+	if order.Signer != funder {
+		t.Fatalf("signer mismatch: got %s, want deposit wallet %s", order.Signer.Hex(), funder.Hex())
+	}
+	if order.Timestamp == 0 {
+		t.Fatal("timestamp must be set")
+	}
+}
+
 func TestOrderBuilderFunderRequiresSignature(t *testing.T) {
 	stub := newStubClient()
 	stub.tickSize = 0.01

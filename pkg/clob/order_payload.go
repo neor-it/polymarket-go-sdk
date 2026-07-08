@@ -1,12 +1,12 @@
 package clob
 
-import "github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
-
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/neor-it/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 )
 
@@ -33,8 +33,14 @@ func buildOrderPayload(order *clobtypes.SignedOrder) (map[string]interface{}, er
 	}
 	if order.DeferExec != nil {
 		payload["deferExec"] = *order.DeferExec
+	} else if isPoly1271SignedOrder(order) {
+		payload["deferExec"] = false
 	}
 	return payload, nil
+}
+
+func isPoly1271SignedOrder(order *clobtypes.SignedOrder) bool {
+	return order != nil && order.Order.SignatureType != nil && *order.Order.SignatureType == 3
 }
 
 func buildOrdersPayload(orders *clobtypes.SignedOrders) ([]map[string]interface{}, error) {
@@ -74,9 +80,20 @@ func orderWithSignature(order *clobtypes.SignedOrder) (map[string]interface{}, e
 		return nil, fmt.Errorf("invalid order side %q", order.Order.Side)
 	}
 
-	salt, err := saltToJSON(order.Order.Salt)
-	if err != nil {
-		return nil, err
+	var salt interface{}
+	if sigType == 3 {
+		// POLY_1271: serialize salt as json.Number to preserve exact numeric string.
+		if order.Order.Salt.Int != nil {
+			salt = json.Number(order.Order.Salt.Int.String())
+		} else {
+			salt = json.Number("0")
+		}
+	} else {
+		var err error
+		salt, err = saltToJSON(order.Order.Salt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return map[string]interface{}{

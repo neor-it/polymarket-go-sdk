@@ -370,9 +370,16 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 	if err != nil {
 		return nil, err
 	}
+
+	// For POLY_1271, both maker and signer on the order must be the deposit wallet.
+	orderSigner := b.signer.Address()
+	if sigType == int(auth.SignaturePoly1271) {
+		orderSigner = maker
+	}
+
 	order := &clobtypes.Order{
 		Salt:          types.U256{Int: salt},
-		Signer:        b.signer.Address(),
+		Signer:        orderSigner,
 		Maker:         maker,
 		TokenID:       types.U256{Int: tokenIDInt},
 		MakerAmount:   types.Decimal(makerFixed),
@@ -496,9 +503,16 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 	if err != nil {
 		return nil, err
 	}
+
+	// For POLY_1271, both maker and signer on the order must be the deposit wallet.
+	orderSigner := b.signer.Address()
+	if sigType == int(auth.SignaturePoly1271) {
+		orderSigner = maker
+	}
+
 	return &clobtypes.Order{
 		Salt:          types.U256{Int: salt},
-		Signer:        b.signer.Address(),
+		Signer:        orderSigner,
 		Maker:         maker,
 		TokenID:       types.U256{Int: tokenIDInt},
 		MakerAmount:   types.Decimal(makerFixed),

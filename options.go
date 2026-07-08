@@ -8,6 +8,7 @@ import (
 	"github.com/neor-it/polymarket-go-sdk/pkg/ctf"
 	"github.com/neor-it/polymarket-go-sdk/pkg/data"
 	"github.com/neor-it/polymarket-go-sdk/pkg/gamma"
+	"github.com/neor-it/polymarket-go-sdk/pkg/relayer"
 	"github.com/neor-it/polymarket-go-sdk/pkg/rtds"
 	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
 )
@@ -95,12 +96,22 @@ func WithCTF(client ctf.Client) Option {
 	}
 }
 
+// WithRelayer overrides the default relayer client.
+func WithRelayer(client relayer.Client) Option {
+	return func(c *Client) {
+		c.Relayer = client
+	}
+}
+
 // WithBuilderConfig configures builder attribution using either local or remote signing.
 func WithBuilderConfig(cfg *auth.BuilderConfig) Option {
 	return func(c *Client) {
 		c.builderCfg = cfg
 		if c.CLOB != nil {
 			c.CLOB = c.CLOB.WithBuilderConfig(cfg)
+		}
+		if c.Relayer != nil {
+			c.Relayer = c.Relayer.WithBuilderConfig(cfg)
 		}
 	}
 }
@@ -120,6 +131,9 @@ func WithBuilderAttribution(apiKey, secret, passphrase string) Option {
 		if c.CLOB != nil {
 			c.CLOB = c.CLOB.WithBuilderConfig(cfg)
 		}
+		if c.Relayer != nil {
+			c.Relayer = c.Relayer.WithBuilderConfig(cfg)
+		}
 	}
 }
 
@@ -137,6 +151,9 @@ func WithOfficialGoSDKSupport() Option {
 		c.builderCfg = cfg
 		if c.CLOB != nil {
 			c.CLOB = c.CLOB.WithBuilderConfig(cfg)
+		}
+		if c.Relayer != nil {
+			c.Relayer = c.Relayer.WithBuilderConfig(cfg)
 		}
 	}
 }

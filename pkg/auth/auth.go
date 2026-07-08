@@ -78,6 +78,9 @@ const (
 	SignatureProxy SignatureType = 1
 	// SignatureGnosisSafe indicates a signature from a Gnosis Safe multisig.
 	SignatureGnosisSafe SignatureType = 2
+	// SignaturePoly1271 indicates a deposit wallet order signed with ERC-7739 (POLY_1271).
+	// The order maker and signer must both be the deposit wallet address.
+	SignaturePoly1271 SignatureType = 3
 )
 
 // Supported chain IDs for Polymarket operations.
@@ -117,17 +120,19 @@ var walletConfigs = map[int64]walletConfig{
 
 var (
 	// Use unified error definitions from pkg/errors
-	ErrMissingSigner          = sdkerrors.ErrMissingSigner
-	ErrMissingCreds           = sdkerrors.ErrMissingCreds
-	ErrMissingBuilderConfig   = sdkerrors.ErrMissingBuilderConfig
-	ErrProxyWalletUnsupported = sdkerrors.ErrProxyWalletUnsupported
-	ErrSafeWalletUnsupported  = sdkerrors.ErrSafeWalletUnsupported
+	ErrMissingSigner             = sdkerrors.ErrMissingSigner
+	ErrMissingCreds              = sdkerrors.ErrMissingCreds
+	ErrMissingBuilderConfig      = sdkerrors.ErrMissingBuilderConfig
+	ErrExternalSignatureRequired = sdkerrors.ErrExternalSignatureRequired
+	ErrProxyWalletUnsupported    = sdkerrors.ErrProxyWalletUnsupported
+	ErrSafeWalletUnsupported     = sdkerrors.ErrSafeWalletUnsupported
 )
 
 // Authentication header keys used by Polymarket API.
 const (
 	HeaderPolyAddress           = "POLY_ADDRESS"
 	HeaderPolySignature         = "POLY_SIGNATURE"
+	HeaderPolySignatureType     = "POLY_SIGNATURE_TYPE"
 	HeaderPolyTimestamp         = "POLY_TIMESTAMP"
 	HeaderPolyNonce             = "POLY_NONCE"
 	HeaderPolyAPIKey            = "POLY_API_KEY"
@@ -162,6 +167,39 @@ func NewPrivateKeySigner(hexKey string, chainID int64) (*PrivateKeySigner, error
 		address: crypto.PubkeyToAddress(key.PublicKey),
 		chainID: big.NewInt(chainID),
 	}, nil
+}
+
+// AddressOnlySigner carries an EVM address for authenticated requests but cannot
+// produce signatures. Use it when a user's wallet signs typed data outside the SDK.
+type AddressOnlySigner struct {
+	address common.Address
+	chainID *big.Int
+}
+
+// NewAddressOnlySigner creates a non-signing signer for an externally-owned key.
+func NewAddressOnlySigner(address string, chainID int64) (*AddressOnlySigner, error) {
+	if !common.IsHexAddress(address) {
+		return nil, fmt.Errorf("invalid address: %q", address)
+	}
+	return &AddressOnlySigner{
+		address: common.HexToAddress(address),
+		chainID: big.NewInt(chainID),
+	}, nil
+}
+
+// Address returns the configured address.
+func (s *AddressOnlySigner) Address() common.Address {
+	return s.address
+}
+
+// ChainID returns the configured chain ID.
+func (s *AddressOnlySigner) ChainID() *big.Int {
+	return new(big.Int).Set(s.chainID)
+}
+
+// SignTypedData always returns ErrExternalSignatureRequired.
+func (s *AddressOnlySigner) SignTypedData(*apitypes.TypedDataDomain, apitypes.Types, apitypes.TypedDataMessage, string) ([]byte, error) {
+	return nil, ErrExternalSignatureRequired
 }
 
 // Address returns the public address of the private key.
@@ -506,6 +544,23 @@ func DeriveSafeWalletForChain(eoa common.Address, chainID int64) (common.Address
 
 func ptrAddress(addr common.Address) *common.Address {
 	return &addr
+}
+
+// SignDigest signs a raw 32-byte digest with the private key.
+// Required for POLY_1271 order signing, which builds its own wrapped EIP-712 digest
+// rather than going through the standard EIP-712 helper.
+func (s *PrivateKeySigner) SignDigest(digest []byte) ([]byte, error) {
+	if len(digest) != 32 {
+		return nil, fmt.Errorf("digest must be 32 bytes, got %d", len(digest))
+	}
+	signature, err := crypto.Sign(digest, s.key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign hash: %w", err)
+	}
+	if signature[64] < 27 {
+		signature[64] += 27
+	}
+	return signature, nil
 }
 
 // SignTypedData signs EIP-712 typed data. It ensures the V value is correctly adjusted

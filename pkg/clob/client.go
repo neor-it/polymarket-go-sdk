@@ -196,6 +196,8 @@ type Client interface {
 	CreateAPIKey(ctx context.Context) (clobtypes.APIKeyResponse, error)
 	// CreateAPIKeyWithNonce creates a new set of L2 API credentials with an explicit nonce.
 	CreateAPIKeyWithNonce(ctx context.Context, nonce int64) (clobtypes.APIKeyResponse, error)
+	// CreateAPIKeyWithL1Headers creates L2 API credentials using caller-supplied L1 auth headers.
+	CreateAPIKeyWithL1Headers(ctx context.Context, headers map[string]string) (clobtypes.APIKeyResponse, error)
 	// ListAPIKeys lists all active L2 API keys for the authenticated account.
 	ListAPIKeys(ctx context.Context) (clobtypes.APIKeyListResponse, error)
 	// DeleteAPIKey revokes a specific L2 API key.
@@ -204,10 +206,14 @@ type Client interface {
 	DeriveAPIKey(ctx context.Context) (clobtypes.APIKeyResponse, error)
 	// DeriveAPIKeyWithNonce computes the deterministic L2 API key with an explicit nonce.
 	DeriveAPIKeyWithNonce(ctx context.Context, nonce int64) (clobtypes.APIKeyResponse, error)
+	// DeriveAPIKeyWithL1Headers derives L2 API credentials using caller-supplied L1 auth headers.
+	DeriveAPIKeyWithL1Headers(ctx context.Context, headers map[string]string) (clobtypes.APIKeyResponse, error)
 	// CreateOrDeriveAPIKey attempts to create a new API key, falling back to derive on failure.
 	CreateOrDeriveAPIKey(ctx context.Context) (clobtypes.APIKeyResponse, error)
 	// CreateOrDeriveAPIKeyWithNonce attempts to create a new API key with an explicit nonce, falling back to derive on failure.
 	CreateOrDeriveAPIKeyWithNonce(ctx context.Context, nonce int64) (clobtypes.APIKeyResponse, error)
+	// CreateOrDeriveAPIKeyWithExternalSignature provisions L2 credentials using a pre-signed ClobAuth message.
+	CreateOrDeriveAPIKeyWithExternalSignature(ctx context.Context, authAddress string, timestamp, nonce int64, signatureHex string) (clobtypes.APIKeyResponse, error)
 	// ClosedOnlyStatus checks if the account is restricted to "close-only" trading.
 	ClosedOnlyStatus(ctx context.Context) (clobtypes.ClosedOnlyResponse, error)
 

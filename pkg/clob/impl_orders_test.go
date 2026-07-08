@@ -302,6 +302,54 @@ func TestPostOrders_BatchSizeValidation(t *testing.T) {
 	}
 }
 
+func TestSignOrderPoly1271WrappedSignature(t *testing.T) {
+	// Foundry default key #0 — deterministic ECDSA via RFC 6979.
+	signer, err := auth.NewPrivateKeySigner("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", 137)
+	if err != nil {
+		t.Fatalf("create signer: %v", err)
+	}
+	apiKey := &auth.APIKey{Key: "k1", Secret: "s1", Passphrase: "p1"}
+	funder := common.HexToAddress("0x9c90cad2e22a1E9b4a9aB3F95f7f14d08Ce78ade")
+	sigType := int(auth.SignaturePoly1271)
+
+	order := &clobtypes.Order{
+		Salt:          types.U256{Int: big.NewInt(123)},
+		Maker:         funder,
+		Signer:        funder,
+		TokenID:       types.U256{Int: new(big.Int).SetBytes(common.FromHex("0x1234"))},
+		MakerAmount:   decimal.NewFromInt(5_000_000),
+		TakerAmount:   decimal.NewFromInt(10_000_000),
+		Side:          "BUY",
+		SignatureType: &sigType,
+		Timestamp:     1700000000123,
+	}
+
+	signed, err := signOrderWithCreds(signer, apiKey, order, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("signOrderWithCreds failed: %v", err)
+	}
+
+	if signed.Order.SignatureType == nil || *signed.Order.SignatureType != 3 {
+		t.Fatalf("signature type mismatch: %+v", signed.Order.SignatureType)
+	}
+	if signed.Order.Maker != funder {
+		t.Fatalf("maker mismatch: got %s", signed.Order.Maker.Hex())
+	}
+	if signed.Order.Signer != funder {
+		t.Fatalf("signer mismatch: got %s, want deposit wallet %s", signed.Order.Signer.Hex(), funder.Hex())
+	}
+	if !strings.HasPrefix(signed.Signature, "0x") {
+		t.Fatalf("signature must start with 0x")
+	}
+
+	// Wrapped signature length: 65 (ECDSA) + 32 (domainSep) + 32 (contentsHash) + len(orderTypeStr) + 2 (uint16)
+	sigBytes := common.FromHex(signed.Signature)
+	expectedLen := 65 + 32 + 32 + len(orderTypeStr) + 2
+	if len(sigBytes) != expectedLen {
+		t.Fatalf("wrapped signature length = %d, want %d", len(sigBytes), expectedLen)
+	}
+}
+
 func TestCancelOrders_BatchSizeValidation(t *testing.T) {
 	ctx := context.Background()
 	client := &clientImpl{

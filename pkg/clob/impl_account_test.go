@@ -179,6 +179,27 @@ func TestAccountMethods(t *testing.T) {
 		}
 	})
 
+	t.Run("CreateAPIKeyExternalSignatureUsesOwnerEOAAuth", func(t *testing.T) {
+		doer := &headerCaptureDoer{response: `{"apiKey":"k2","secret":"s2","passphrase":"p2"}`}
+		client := &clientImpl{
+			httpClient:    transport.NewClient(doer, "http://example"),
+			signatureType: auth.SignaturePoly1271,
+		}
+		_, err := client.CreateOrDeriveAPIKeyWithExternalSignature(
+			ctx,
+			"0x1111111111111111111111111111111111111111",
+			123,
+			0,
+			"0x1234",
+		)
+		if err != nil {
+			t.Errorf("CreateOrDeriveAPIKeyWithExternalSignature failed: %v", err)
+		}
+		if got := doer.lastHeader.Get(auth.HeaderPolySignatureType); got != "" {
+			t.Errorf("expected no signature type header for owner EOA auth, got %q", got)
+		}
+	})
+
 	t.Run("DeriveAPIKey", func(t *testing.T) {
 		doer := &staticDoer{
 			responses: map[string]string{"/auth/derive-api-key": `{"apiKey":"k3"}`},
