@@ -98,7 +98,7 @@ func BuildTypedDataSignEnvelope(walletAddress string, chainID int64, domain *api
 		return nil, fmt.Errorf("hash typed data sign envelope: %w", err)
 	}
 
-	payload, err := json.Marshal(envelope)
+	payload, err := MarshalTypedDataForSigning(envelope)
 	if err != nil {
 		return nil, fmt.Errorf("marshal envelope typed data: %w", err)
 	}
@@ -226,7 +226,7 @@ func BuildClobAuthTypedData(address string, timestamp, nonce, chainID int64) (js
 	if _, _, err := apitypes.TypedDataAndHash(*typedData); err != nil {
 		return nil, fmt.Errorf("hash clob auth typed data: %w", err)
 	}
-	payload, err := json.Marshal(typedData)
+	payload, err := MarshalTypedDataForSigning(*typedData)
 	if err != nil {
 		return nil, fmt.Errorf("marshal clob auth typed data: %w", err)
 	}
@@ -336,8 +336,13 @@ func clobAuthTypedData(address string, timestamp, nonce, chainID int64) (*apityp
 		Message: apitypes.TypedDataMessage{
 			"address":   common.HexToAddress(address).Hex(),
 			"timestamp": fmt.Sprintf("%d", timestamp),
-			"nonce":     (*math.HexOrDecimal256)(big.NewInt(nonce)),
-			"message":   "This message attests that I control the given wallet",
+			// Decimal string, matching every other uint256 message field in this
+			// codebase (deadline/nonce elsewhere) — not *math.HexOrDecimal256,
+			// which round-trips fine through our own hashing but renders as a
+			// hex string ("0x5") if ever marshaled raw, an inconsistency not
+			// worth carrying for a field that's always safe as a plain decimal.
+			"nonce":   fmt.Sprintf("%d", nonce),
+			"message": "This message attests that I control the given wallet",
 		},
 	}, nil
 }
