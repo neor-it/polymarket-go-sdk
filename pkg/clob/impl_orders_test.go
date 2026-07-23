@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
@@ -37,6 +38,190 @@ func TestOrderManagementMethods(t *testing.T) {
 		resp, err := client.PostOrder(ctx, order)
 		if err != nil || resp.ID != "o1" {
 			t.Errorf("PostOrder failed: %v", err)
+		}
+	})
+
+	t.Run("PostOrderResolvesTradeIDs", func(t *testing.T) {
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/order":                          `{"orderID":"o1","status":"matched","tradeIDs":["trade-1"]}`,
+				"/data/trades?id=trade-1&limit=1": `{"data":[{"id":"trade-1","status":"TRADE_STATUS_CONFIRMED","transaction_hash":"0xabc"}]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		order := &clobtypes.SignedOrder{
+			Order:     clobtypes.Order{Side: "BUY"},
+			Signature: "0x123",
+			Owner:     "0xabc",
+			OrderType: clobtypes.OrderTypeFOK,
+		}
+		resp, err := client.PostOrder(ctx, order)
+		if err != nil {
+			t.Fatalf("PostOrder failed: %v", err)
+		}
+		if len(resp.TransactionHashes) != 1 || resp.TransactionHashes[0] != "0xabc" {
+			t.Fatalf("TransactionHashes = %v, want [0xabc]", resp.TransactionHashes)
+		}
+		if len(resp.TradeIDs) != 1 || resp.TradeIDs[0] != "trade-1" {
+			t.Fatalf("TradeIDs = %v, want [trade-1]", resp.TradeIDs)
+		}
+	})
+
+	t.Run("PostOrderKeepsInlineTransactionHashes", func(t *testing.T) {
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/order": `{"orderID":"o1","status":"matched","transactionsHashes":["0xinline"],"tradeIDs":["trade-1"]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		order := &clobtypes.SignedOrder{
+			Order:     clobtypes.Order{Side: "BUY"},
+			Signature: "0x123",
+			Owner:     "0xabc",
+			OrderType: clobtypes.OrderTypeFOK,
+		}
+		resp, err := client.PostOrder(ctx, order)
+		if err != nil {
+			t.Fatalf("PostOrder failed: %v", err)
+		}
+		if len(resp.TransactionHashes) != 1 || resp.TransactionHashes[0] != "0xinline" {
+			t.Fatalf("TransactionHashes = %v, want [0xinline]", resp.TransactionHashes)
+		}
+	})
+
+	t.Run("PostOrderSkipsResolutionForDeferExec", func(t *testing.T) {
+		deferExec := true
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/order": `{"orderID":"o1","status":"matched","tradeIDs":["trade-1"]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		order := &clobtypes.SignedOrder{
+			Order:     clobtypes.Order{Side: "BUY"},
+			Signature: "0x123",
+			Owner:     "0xabc",
+			OrderType: clobtypes.OrderTypeFOK,
+			DeferExec: &deferExec,
+		}
+		resp, err := client.PostOrder(ctx, order)
+		if err != nil {
+			t.Fatalf("PostOrder failed: %v", err)
+		}
+		if len(resp.TransactionHashes) != 0 {
+			t.Fatalf("TransactionHashes = %v, want empty", resp.TransactionHashes)
+		}
+	})
+
+	t.Run("PostOrderDoesNotFailWhenTradePollingFails", func(t *testing.T) {
+		pollCtx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
+		defer cancel()
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/order": `{"orderID":"o1","status":"matched","tradeIDs":["trade-1"]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		order := &clobtypes.SignedOrder{
+			Order:     clobtypes.Order{Side: "BUY"},
+			Signature: "0x123",
+			Owner:     "0xabc",
+			OrderType: clobtypes.OrderTypeFOK,
+		}
+		resp, err := client.PostOrder(pollCtx, order)
+		if err != nil {
+			t.Fatalf("PostOrder must keep successful submit response: %v", err)
+		}
+		if resp.ID != "o1" {
+			t.Fatalf("ID = %s, want o1", resp.ID)
+		}
+		if len(resp.TransactionHashes) != 0 {
+			t.Fatalf("TransactionHashes = %v, want empty", resp.TransactionHashes)
+		}
+	})
+
+	t.Run("PostOrdersResolvesTradeIDsPerOrder", func(t *testing.T) {
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/orders":                         `[{"orderID":"o1","status":"matched","tradeIDs":["trade-1"]},{"orderID":"o2","status":"live"}]`,
+				"/data/trades?id=trade-1&limit=1": `{"data":[{"id":"trade-1","status":"TRADE_STATUS_CONFIRMED","transaction_hash":"0xabc"}]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		resp, err := client.PostOrders(ctx, &clobtypes.SignedOrders{
+			Orders: []clobtypes.SignedOrder{
+				{
+					Order:     clobtypes.Order{Side: "BUY"},
+					Signature: "0x123",
+					Owner:     "0xabc",
+					OrderType: clobtypes.OrderTypeFOK,
+				},
+				{
+					Order:     clobtypes.Order{Side: "SELL"},
+					Signature: "0x456",
+					Owner:     "0xabc",
+					OrderType: clobtypes.OrderTypeGTC,
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("PostOrders failed: %v", err)
+		}
+		if len(resp) != 2 {
+			t.Fatalf("len(resp) = %d, want 2", len(resp))
+		}
+		if len(resp[0].TransactionHashes) != 1 || resp[0].TransactionHashes[0] != "0xabc" {
+			t.Fatalf("resp[0].TransactionHashes = %v, want [0xabc]", resp[0].TransactionHashes)
+		}
+		if len(resp[1].TransactionHashes) != 0 {
+			t.Fatalf("resp[1].TransactionHashes = %v, want empty", resp[1].TransactionHashes)
+		}
+	})
+
+	t.Run("PostOrderExcludesFailedTradesFromHashes", func(t *testing.T) {
+		doer := &staticDoer{
+			responses: map[string]string{
+				"/order":                          `{"orderID":"o1","status":"matched","tradeIDs":["trade-1"]}`,
+				"/data/trades?id=trade-1&limit=1": `{"data":[{"id":"trade-1","status":"TRADE_STATUS_FAILED"}]}`,
+			},
+		}
+		client := &clientImpl{
+			httpClient: transport.NewClient(doer, "http://example"),
+			signer:     signer,
+			apiKey:     apiKey,
+		}
+		order := &clobtypes.SignedOrder{
+			Order:     clobtypes.Order{Side: "BUY"},
+			Signature: "0x123",
+			Owner:     "0xabc",
+			OrderType: clobtypes.OrderTypeFOK,
+		}
+		resp, err := client.PostOrder(ctx, order)
+		if err != nil {
+			t.Fatalf("PostOrder failed: %v", err)
+		}
+		if len(resp.TransactionHashes) != 0 {
+			t.Fatalf("TransactionHashes = %v, want empty", resp.TransactionHashes)
 		}
 	})
 

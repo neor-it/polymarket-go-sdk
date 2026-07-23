@@ -352,21 +352,27 @@ type (
 	}
 	PricesHistoryResponse []PriceHistoryPoint
 	OrderResponse         struct {
-		ID           string `json:"orderID"`
-		Status       string `json:"status"`
-		AssetID      string `json:"asset_id,omitempty"`
-		Market       string `json:"market,omitempty"`
-		Side         string `json:"side,omitempty"`
-		Price        string `json:"price,omitempty"`
-		OriginalSize string `json:"original_size,omitempty"`
-		SizeMatched  string `json:"size_matched,omitempty"`
-		Owner        string `json:"owner,omitempty"`
-		MakerAddress string `json:"maker_address,omitempty"`
-		OrderType    string `json:"order_type,omitempty"`
-		Expiration   string `json:"expiration,omitempty"`
-		CreatedAt    string `json:"created_at,omitempty"`
-		Timestamp    string `json:"timestamp,omitempty"`
-		Outcome      string `json:"outcome,omitempty"`
+		ID                string   `json:"orderID"`
+		Success           bool     `json:"success,omitempty"`
+		ErrorMsg          string   `json:"errorMsg,omitempty"`
+		Status            string   `json:"status"`
+		MakingAmount      string   `json:"makingAmount,omitempty"`
+		TakingAmount      string   `json:"takingAmount,omitempty"`
+		TransactionHashes []string `json:"transactionsHashes,omitempty"`
+		TradeIDs          []string `json:"tradeIDs,omitempty"`
+		AssetID           string   `json:"asset_id,omitempty"`
+		Market            string   `json:"market,omitempty"`
+		Side              string   `json:"side,omitempty"`
+		Price             string   `json:"price,omitempty"`
+		OriginalSize      string   `json:"original_size,omitempty"`
+		SizeMatched       string   `json:"size_matched,omitempty"`
+		Owner             string   `json:"owner,omitempty"`
+		MakerAddress      string   `json:"maker_address,omitempty"`
+		OrderType         string   `json:"order_type,omitempty"`
+		Expiration        string   `json:"expiration,omitempty"`
+		CreatedAt         string   `json:"created_at,omitempty"`
+		Timestamp         string   `json:"timestamp,omitempty"`
+		Outcome           string   `json:"outcome,omitempty"`
 	}
 	PostOrdersResponse []OrderResponse
 	OrdersResponse     struct {
@@ -724,6 +730,44 @@ func (o *OrderResponse) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("status: %w", err)
 		}
 	}
+	if value, ok := raw["success"]; ok {
+		if err := json.Unmarshal(value, &next.Success); err != nil {
+			return fmt.Errorf("success: %w", err)
+		}
+	}
+	if value, ok := raw["errorMsg"]; ok {
+		if err := unmarshalOrderResponseString(value, &next.ErrorMsg); err != nil {
+			return fmt.Errorf("errorMsg: %w", err)
+		}
+	}
+	if value, ok := raw["makingAmount"]; ok {
+		if err := unmarshalOrderResponseString(value, &next.MakingAmount); err != nil {
+			return fmt.Errorf("makingAmount: %w", err)
+		}
+	}
+	if value, ok := raw["takingAmount"]; ok {
+		if err := unmarshalOrderResponseString(value, &next.TakingAmount); err != nil {
+			return fmt.Errorf("takingAmount: %w", err)
+		}
+	}
+	if value, ok := raw["transactionsHashes"]; ok {
+		if err := unmarshalOrderResponseStrings(value, &next.TransactionHashes); err != nil {
+			return fmt.Errorf("transactionsHashes: %w", err)
+		}
+	} else if value, ok := raw["transactionHashes"]; ok {
+		if err := unmarshalOrderResponseStrings(value, &next.TransactionHashes); err != nil {
+			return fmt.Errorf("transactionHashes: %w", err)
+		}
+	}
+	if value, ok := raw["tradeIDs"]; ok {
+		if err := unmarshalOrderResponseStrings(value, &next.TradeIDs); err != nil {
+			return fmt.Errorf("tradeIDs: %w", err)
+		}
+	} else if value, ok := raw["tradeIds"]; ok {
+		if err := unmarshalOrderResponseStrings(value, &next.TradeIDs); err != nil {
+			return fmt.Errorf("tradeIds: %w", err)
+		}
+	}
 	if value, ok := raw["asset_id"]; ok {
 		if err := unmarshalOrderResponseString(value, &next.AssetID); err != nil {
 			return fmt.Errorf("asset_id: %w", err)
@@ -806,6 +850,21 @@ func unmarshalOrderResponseString(data json.RawMessage, dest *string) error {
 	}
 
 	*dest = value
+	return nil
+}
+
+func unmarshalOrderResponseStrings(data json.RawMessage, dest *[]string) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return nil
+	}
+
+	var values []string
+	if err := json.Unmarshal(trimmed, &values); err != nil {
+		return err
+	}
+
+	*dest = values
 	return nil
 }
 

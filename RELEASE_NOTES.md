@@ -1,5 +1,19 @@
 # Release Notes
 
+## Version 0.1.5 (2026-07-23)
+
+### CLOB Order Response Compatibility
+
+- Added `OrderResponse` support for `success`, `errorMsg`, `makingAmount`, `takingAmount`, `transactionsHashes`, and `tradeIDs`.
+- `PostOrder` and `PostOrders` now resolve settlement transaction hashes from `tradeIDs` when Polymarket returns matched orders without inline hashes.
+- Trade polling is best-effort: a successful order submit is never failed because trade lookup times out or returns transient errors.
+- `deferExec` orders skip hash polling because execution is intentionally deferred.
+
+### Upgrade Notes
+
+- This release is backward compatible with pre-async-commit responses that still include inline `transactionsHashes`.
+- Custom integrations that read `OrderResponse.TransactionHashes` can keep doing so; SDK users that need raw trade IDs can read `OrderResponse.TradeIDs`.
+
 ## Version 0.x.x (2026-02-10)
 
 ### 🔧 Critical Bug Fixes

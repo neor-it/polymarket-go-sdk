@@ -226,7 +226,11 @@ func (c *clientImpl) PostOrder(ctx context.Context, req *clobtypes.SignedOrder) 
 		return resp, err
 	}
 	err = c.httpClient.Post(ctx, "/order", payload, &resp)
-	return resp, mapError(err)
+	if err != nil {
+		return resp, mapError(err)
+	}
+	c.resolveOrderTransactionHashes(ctx, &resp, signedOrderDefersExecution(req))
+	return resp, nil
 }
 
 func (c *clientImpl) PostOrders(ctx context.Context, req *clobtypes.SignedOrders) (clobtypes.PostOrdersResponse, error) {
@@ -239,7 +243,21 @@ func (c *clientImpl) PostOrders(ctx context.Context, req *clobtypes.SignedOrders
 		return resp, err
 	}
 	err = c.httpClient.Post(ctx, "/orders", payload, &resp)
-	return resp, mapError(err)
+	if err != nil {
+		return resp, mapError(err)
+	}
+	for idx := range resp {
+		if req == nil || idx >= len(req.Orders) {
+			c.resolveOrderTransactionHashes(ctx, &resp[idx], false)
+			continue
+		}
+		c.resolveOrderTransactionHashes(ctx, &resp[idx], signedOrderDefersExecution(&req.Orders[idx]))
+	}
+	return resp, nil
+}
+
+func signedOrderDefersExecution(order *clobtypes.SignedOrder) bool {
+	return order != nil && order.DeferExec != nil && *order.DeferExec
 }
 
 func (c *clientImpl) CancelOrder(ctx context.Context, req *clobtypes.CancelOrderRequest) (clobtypes.CancelResponse, error) {

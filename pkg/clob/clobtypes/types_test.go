@@ -639,7 +639,13 @@ func TestOrderResponse_ExpandedFields(t *testing.T) {
 		"expiration": "0",
 		"created_at": "2024-01-01T00:00:00Z",
 		"timestamp": "1700000000",
-		"outcome": "Yes"
+		"outcome": "Yes",
+		"success": true,
+		"errorMsg": "",
+		"makingAmount": "100000000",
+		"takingAmount": "50000000",
+		"transactionsHashes": ["0xhash1"],
+		"tradeIDs": ["trade-1", "trade-2"]
 	}`
 
 	var resp OrderResponse
@@ -669,6 +675,21 @@ func TestOrderResponse_ExpandedFields(t *testing.T) {
 	}
 	if resp.OrderType != "GTC" {
 		t.Errorf("OrderType = %s, want GTC", resp.OrderType)
+	}
+	if !resp.Success {
+		t.Errorf("Success = false, want true")
+	}
+	if resp.MakingAmount != "100000000" {
+		t.Errorf("MakingAmount = %s, want 100000000", resp.MakingAmount)
+	}
+	if resp.TakingAmount != "50000000" {
+		t.Errorf("TakingAmount = %s, want 50000000", resp.TakingAmount)
+	}
+	if len(resp.TransactionHashes) != 1 || resp.TransactionHashes[0] != "0xhash1" {
+		t.Errorf("TransactionHashes = %v, want [0xhash1]", resp.TransactionHashes)
+	}
+	if len(resp.TradeIDs) != 2 || resp.TradeIDs[0] != "trade-1" || resp.TradeIDs[1] != "trade-2" {
+		t.Errorf("TradeIDs = %v, want [trade-1 trade-2]", resp.TradeIDs)
 	}
 }
 
@@ -760,6 +781,25 @@ func TestOrderResponse_OrderIDPrecedence(t *testing.T) {
 	}
 	if resp.ID != "primary-id" {
 		t.Errorf("ID = %s, want primary-id", resp.ID)
+	}
+}
+
+func TestOrderResponse_ResponseFieldAliases(t *testing.T) {
+	raw := `{
+		"orderID": "order-123",
+		"transactionHashes": ["0xhash1"],
+		"tradeIds": ["trade-1"]
+	}`
+
+	var resp OrderResponse
+	if err := json.Unmarshal([]byte(raw), &resp); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if len(resp.TransactionHashes) != 1 || resp.TransactionHashes[0] != "0xhash1" {
+		t.Errorf("TransactionHashes = %v, want [0xhash1]", resp.TransactionHashes)
+	}
+	if len(resp.TradeIDs) != 1 || resp.TradeIDs[0] != "trade-1" {
+		t.Errorf("TradeIDs = %v, want [trade-1]", resp.TradeIDs)
 	}
 }
 
