@@ -5,6 +5,7 @@ import (
 	"github.com/neor-it/polymarket-go-sdk/pkg/bridge"
 	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
 	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/combos"
 	"github.com/neor-it/polymarket-go-sdk/pkg/ctf"
 	"github.com/neor-it/polymarket-go-sdk/pkg/data"
 	"github.com/neor-it/polymarket-go-sdk/pkg/gamma"
@@ -100,6 +101,21 @@ func WithCTF(client ctf.Client) Option {
 func WithRelayer(client relayer.Client) Option {
 	return func(c *Client) {
 		c.Relayer = client
+	}
+}
+
+// WithCombos overrides the default Combo API client.
+func WithCombos(client combos.Client) Option {
+	return func(c *Client) {
+		c.Combos = client
+	}
+}
+
+// WithComboAuth configures account and builder credentials for Combo Builder RFQ calls.
+func WithComboAuth(account *combos.AccountAuth, builder *combos.BuilderAuth) Option {
+	return func(c *Client) {
+		c.comboAccountAuth = account
+		c.comboBuilderAuth = builder
 	}
 }
 

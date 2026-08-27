@@ -9,6 +9,7 @@ import (
 	"github.com/neor-it/polymarket-go-sdk/pkg/bridge"
 	"github.com/neor-it/polymarket-go-sdk/pkg/clob"
 	"github.com/neor-it/polymarket-go-sdk/pkg/clob/ws"
+	"github.com/neor-it/polymarket-go-sdk/pkg/combos"
 	"github.com/neor-it/polymarket-go-sdk/pkg/ctf"
 	"github.com/neor-it/polymarket-go-sdk/pkg/data"
 	"github.com/neor-it/polymarket-go-sdk/pkg/gamma"
@@ -29,9 +30,12 @@ type Client struct {
 	RTDS    rtds.Client
 	CTF     ctf.Client
 	Relayer relayer.Client
+	Combos  combos.Client
 
-	builderCfg *auth.BuilderConfig
-	InitErrors []error
+	builderCfg       *auth.BuilderConfig
+	comboAccountAuth *combos.AccountAuth
+	comboBuilderAuth *combos.BuilderAuth
+	InitErrors       []error
 }
 
 // InitError records a non-fatal client initialization failure for a sub-service.
@@ -121,6 +125,16 @@ func newClient(strict bool, opts ...Option) (*Client, error) {
 		relayerTransport := transport.NewClient(c.Config.HTTPClient, relayerURL)
 		relayerTransport.SetUserAgent(c.Config.UserAgent)
 		c.Relayer = relayer.NewClient(relayerTransport)
+	}
+	if c.Combos == nil {
+		c.Combos = combos.NewClient(combos.Config{
+			PublicBaseURL:  c.Config.BaseURLs.CombosPublic,
+			DataBaseURL:    c.Config.BaseURLs.CombosData,
+			BuilderBaseURL: c.Config.BaseURLs.CombosBuilder,
+			HTTPClient:     c.Config.HTTPClient,
+			AccountAuth:    c.comboAccountAuth,
+			BuilderAuth:    c.comboBuilderAuth,
+		})
 	}
 	if c.CLOBWS == nil {
 		// Default WS URL
