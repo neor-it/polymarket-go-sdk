@@ -1,3 +1,5 @@
+> Historical report: the Data API section below describes the retired v1 contract. For the current SDK, see [Data API v2 migration](data-api-v2-migration.md).
+
 # Polymarket API Research Report
 
 ## Date: 2026-02-19

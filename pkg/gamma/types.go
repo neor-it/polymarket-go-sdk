@@ -1,8 +1,6 @@
 package gamma
 
 import (
-	"encoding/json"
-
 	"github.com/shopspring/decimal"
 )
 
@@ -210,96 +208,77 @@ type PublicSearchRequest struct {
 }
 
 type Market struct {
-	ID                    string  `json:"id"`
-	Question              string  `json:"question"`
-	ConditionID           string  `json:"conditionId"`
-	Slug                  string  `json:"slug"`
-	ResolutionSource      string  `json:"resolutionSource"`
-	EndDate               string  `json:"endDate"`
+	ID                    string          `json:"id"`
+	Question              string          `json:"question"`
+	ConditionID           string          `json:"conditionId"`
+	Slug                  string          `json:"slug"`
+	ResolutionSource      string          `json:"resolutionSource"`
+	EndDate               string          `json:"endDate"`
 	Liquidity             decimal.Decimal `json:"liquidity"`
 	StartDate             string          `json:"startDate"`
 	Volume                decimal.Decimal `json:"volume"`
-	Active                bool    `json:"active"`
-	Closed                bool    `json:"closed"`
-	MarketMakerAddress    string  `json:"marketMakerAddress"`
-	Tags                  []Tag   `json:"tags"`
-	Tokens                []Token `json:"tokens"`
-	ClobTokenIds          string  `json:"clobTokenIds"`
-	Outcomes              string  `json:"outcomes"`
-	OutcomePrices         string  `json:"outcomePrices"`
-	Rewards               Rewards `json:"rewards"`
-	NegRisk               bool    `json:"negRisk"`
-	NegRiskMarketID       string  `json:"negRiskMarketId,omitempty"`
-	NegRiskRequestID      string  `json:"negRiskRequestId,omitempty"`
-	EnableOrderBook       bool    `json:"enableOrderBook,omitempty"`
-	QuestionID            string  `json:"questionId,omitempty"`
+	Active                bool            `json:"active"`
+	Closed                bool            `json:"closed"`
+	MarketMakerAddress    string          `json:"marketMakerAddress"`
+	Tags                  []Tag           `json:"tags"`
+	Tokens                []Token         `json:"tokens"`
+	Version               ProtocolVersion `json:"version"`
+	PositionIDs           []string        `json:"positionIds"`
+	ResolutionStatus      string          `json:"resolutionStatus"`
+	UmaResolutionStatus   string          `json:"umaResolutionStatus"`
+	ClobTokenIds          string          `json:"clobTokenIds"`
+	Outcomes              string          `json:"outcomes"`
+	OutcomePrices         string          `json:"outcomePrices"`
+	Rewards               Rewards         `json:"rewards"`
+	NegRisk               bool            `json:"negRisk"`
+	NegRiskMarketID       string          `json:"negRiskMarketId,omitempty"`
+	NegRiskRequestID      string          `json:"negRiskRequestId,omitempty"`
+	EnableOrderBook       bool            `json:"enableOrderBook,omitempty"`
+	QuestionID            string          `json:"questionId,omitempty"`
 	Volume24hr            decimal.Decimal `json:"volume24hr,omitempty"`
 	Spread                decimal.Decimal `json:"spread,omitempty"`
 	BestBid               decimal.Decimal `json:"bestBid,omitempty"`
 	BestAsk               decimal.Decimal `json:"bestAsk,omitempty"`
 	LastTradePrice        decimal.Decimal `json:"lastTradePrice,omitempty"`
-	CommentCount          int     `json:"commentCount,omitempty"`
-	Cyom                  bool    `json:"cyom,omitempty"`
+	CommentCount          int             `json:"commentCount,omitempty"`
+	Cyom                  bool            `json:"cyom,omitempty"`
 	OpenInterest          decimal.Decimal `json:"openInterest,omitempty"`
 	VolumeNum             decimal.Decimal `json:"volumeNum,omitempty"`
 	LiquidityNum          decimal.Decimal `json:"liquidityNum,omitempty"`
 	Volume1wk             decimal.Decimal `json:"volume1wk,omitempty"`
 	Volume1mo             decimal.Decimal `json:"volume1mo,omitempty"`
 	Volume1yr             decimal.Decimal `json:"volume1yr,omitempty"`
-	GameStartTime         string  `json:"gameStartTime,omitempty"`
-	SecondsDelay          int     `json:"secondsDelay,omitempty"`
-	Category              string  `json:"category,omitempty"`
-	Subcategory           string  `json:"subcategory,omitempty"`
-	Image                 string  `json:"image,omitempty"`
-	Icon                  string  `json:"icon,omitempty"`
-	TwitterCardImage      string  `json:"twitterCardImage,omitempty"`
-	MarketType            string  `json:"marketType,omitempty"`
-	FormatType            string  `json:"formatType,omitempty"`
+	GameStartTime         string          `json:"gameStartTime,omitempty"`
+	SecondsDelay          int             `json:"secondsDelay,omitempty"`
+	Category              string          `json:"category,omitempty"`
+	Subcategory           string          `json:"subcategory,omitempty"`
+	Image                 string          `json:"image,omitempty"`
+	Icon                  string          `json:"icon,omitempty"`
+	TwitterCardImage      string          `json:"twitterCardImage,omitempty"`
+	MarketType            string          `json:"marketType,omitempty"`
+	FormatType            string          `json:"formatType,omitempty"`
 	LowerBound            decimal.Decimal `json:"lowerBound,omitempty"`
 	UpperBound            decimal.Decimal `json:"upperBound,omitempty"`
-	ClosedTime            string  `json:"closedTime,omitempty"`
-	ResolvedBy            string  `json:"resolvedBy,omitempty"`
-	UmaEndDate            string  `json:"umaEndDate,omitempty"`
-	OrderMinSize          float64 `json:"orderMinSize,omitempty"`
-	OrderPriceMinTickSize float64 `json:"orderPriceMinTickSize,omitempty"`
-	MakerBaseFee          int     `json:"makerBaseFee,omitempty"`
-	TakerBaseFee          int     `json:"takerBaseFee,omitempty"`
-	AcceptingOrders       bool    `json:"acceptingOrders,omitempty"`
-	TeamAID               string  `json:"teamAID,omitempty"`
-	TeamBID               string  `json:"teamBID,omitempty"`
+	ClosedTime            string          `json:"closedTime,omitempty"`
+	ResolvedBy            string          `json:"resolvedBy,omitempty"`
+	UmaEndDate            string          `json:"umaEndDate,omitempty"`
+	OrderMinSize          float64         `json:"orderMinSize,omitempty"`
+	OrderPriceMinTickSize float64         `json:"orderPriceMinTickSize,omitempty"`
+	MakerBaseFee          int             `json:"makerBaseFee,omitempty"`
+	TakerBaseFee          int             `json:"takerBaseFee,omitempty"`
+	AcceptingOrders       bool            `json:"acceptingOrders,omitempty"`
+	TeamAID               string          `json:"teamAID,omitempty"`
+	TeamBID               string          `json:"teamBID,omitempty"`
 	UmaBond               decimal.Decimal `json:"umaBond,omitempty"`
 	UmaReward             decimal.Decimal `json:"umaReward,omitempty"`
-	FpmmLive              bool    `json:"fpmmLive,omitempty"`
-	ShortOutcomes         string  `json:"shortOutcomes,omitempty"`
-	AutomaticallyResolved bool    `json:"automaticallyResolved,omitempty"`
-	OneDayPriceChange     float64 `json:"oneDayPriceChange,omitempty"`
-	OneHourPriceChange    float64 `json:"oneHourPriceChange,omitempty"`
-	OneWeekPriceChange    float64 `json:"oneWeekPriceChange,omitempty"`
-	OneMonthPriceChange   float64 `json:"oneMonthPriceChange,omitempty"`
-	OneYearPriceChange    float64 `json:"oneYearPriceChange,omitempty"`
-}
-
-// ParsedTokens builds a Token slice by combining ClobTokenIds and Outcomes.
-// Returns nil if the fields cannot be parsed.
-func (m *Market) ParsedTokens() []Token {
-	if len(m.Tokens) > 0 {
-		return m.Tokens
-	}
-	var ids []string
-	if err := json.Unmarshal([]byte(m.ClobTokenIds), &ids); err != nil {
-		return nil
-	}
-	var outcomes []string
-	_ = json.Unmarshal([]byte(m.Outcomes), &outcomes)
-
-	tokens := make([]Token, len(ids))
-	for i, id := range ids {
-		tokens[i].TokenID = id
-		if i < len(outcomes) {
-			tokens[i].Outcome = outcomes[i]
-		}
-	}
-	return tokens
+	FpmmLive              bool            `json:"fpmmLive,omitempty"`
+	ShortOutcomes         string          `json:"shortOutcomes,omitempty"`
+	AutomaticallyResolved bool            `json:"automaticallyResolved,omitempty"`
+	OneDayPriceChange     float64         `json:"oneDayPriceChange,omitempty"`
+	OneHourPriceChange    float64         `json:"oneHourPriceChange,omitempty"`
+	OneWeekPriceChange    float64         `json:"oneWeekPriceChange,omitempty"`
+	OneMonthPriceChange   float64         `json:"oneMonthPriceChange,omitempty"`
+	OneYearPriceChange    float64         `json:"oneYearPriceChange,omitempty"`
 }
 
 type Tag struct {
@@ -321,51 +300,51 @@ type Rewards struct {
 }
 
 type Event struct {
-	ID                string   `json:"id"`
-	Ticker            string   `json:"ticker"`
-	Slug              string   `json:"slug"`
-	Title             string   `json:"title"`
-	Description       string   `json:"description"`
-	StartDate         string   `json:"startDate"`
-	CreationDate      string   `json:"creationDate"`
-	EndDate           string   `json:"endDate"`
-	Image             string   `json:"image"`
-	Icon              string   `json:"icon"`
-	Active            bool     `json:"active"`
-	Closed            bool     `json:"closed"`
-	Archived          bool     `json:"archived"`
-	New               bool     `json:"new"`
-	Featured          bool     `json:"featured"`
-	Restricted        bool     `json:"restricted"`
+	ID                string          `json:"id"`
+	Ticker            string          `json:"ticker"`
+	Slug              string          `json:"slug"`
+	Title             string          `json:"title"`
+	Description       string          `json:"description"`
+	StartDate         string          `json:"startDate"`
+	CreationDate      string          `json:"creationDate"`
+	EndDate           string          `json:"endDate"`
+	Image             string          `json:"image"`
+	Icon              string          `json:"icon"`
+	Active            bool            `json:"active"`
+	Closed            bool            `json:"closed"`
+	Archived          bool            `json:"archived"`
+	New               bool            `json:"new"`
+	Featured          bool            `json:"featured"`
+	Restricted        bool            `json:"restricted"`
 	Liquidity         decimal.Decimal `json:"liquidity"`
 	Volume            decimal.Decimal `json:"volume"`
-	Markets           []Market `json:"markets"`
-	NegRisk           bool     `json:"negRisk,omitempty"`
-	EnableNegRisk     bool     `json:"enableNegRisk,omitempty"`
-	NegRiskAugmented  bool     `json:"negRiskAugmented,omitempty"`
-	CommentCount      int      `json:"commentCount,omitempty"`
-	CompetitionState  string   `json:"competitionState,omitempty"`
-	Cyom              bool     `json:"cyom,omitempty"`
-	Subtitle          string   `json:"subtitle,omitempty"`
-	ResolutionSource  string   `json:"resolutionSource,omitempty"`
+	Markets           []Market        `json:"markets"`
+	NegRisk           bool            `json:"negRisk,omitempty"`
+	EnableNegRisk     bool            `json:"enableNegRisk,omitempty"`
+	NegRiskAugmented  bool            `json:"negRiskAugmented,omitempty"`
+	CommentCount      int             `json:"commentCount,omitempty"`
+	CompetitionState  string          `json:"competitionState,omitempty"`
+	Cyom              bool            `json:"cyom,omitempty"`
+	Subtitle          string          `json:"subtitle,omitempty"`
+	ResolutionSource  string          `json:"resolutionSource,omitempty"`
 	OpenInterest      decimal.Decimal `json:"openInterest,omitempty"`
-	SortBy            string   `json:"sortBy,omitempty"`
-	Category          string   `json:"category,omitempty"`
-	Subcategory       string   `json:"subcategory,omitempty"`
-	IsTemplate        bool     `json:"isTemplate,omitempty"`
-	TemplateVariables string   `json:"templateVariables,omitempty"`
-	PublishedAt       string   `json:"publishedAt,omitempty"`
-	CreatedBy         string   `json:"createdBy,omitempty"`
-	UpdatedBy         string   `json:"updatedBy,omitempty"`
-	CommentsEnabled   bool     `json:"commentsEnabled,omitempty"`
+	SortBy            string          `json:"sortBy,omitempty"`
+	Category          string          `json:"category,omitempty"`
+	Subcategory       string          `json:"subcategory,omitempty"`
+	IsTemplate        bool            `json:"isTemplate,omitempty"`
+	TemplateVariables string          `json:"templateVariables,omitempty"`
+	PublishedAt       string          `json:"publishedAt,omitempty"`
+	CreatedBy         string          `json:"createdBy,omitempty"`
+	UpdatedBy         string          `json:"updatedBy,omitempty"`
+	CommentsEnabled   bool            `json:"commentsEnabled,omitempty"`
 	Volume24hr        decimal.Decimal `json:"volume24hr,omitempty"`
 	Volume1wk         decimal.Decimal `json:"volume1wk,omitempty"`
 	Volume1mo         decimal.Decimal `json:"volume1mo,omitempty"`
 	Volume1yr         decimal.Decimal `json:"volume1yr,omitempty"`
-	FeaturedImage     string   `json:"featuredImage,omitempty"`
-	DisqusThread      string   `json:"disqusThread,omitempty"`
-	ParentEvent       string   `json:"parentEvent,omitempty"`
-	NegRiskFeeBips    int      `json:"negRiskFeeBips,omitempty"`
+	FeaturedImage     string          `json:"featuredImage,omitempty"`
+	DisqusThread      string          `json:"disqusThread,omitempty"`
+	ParentEvent       string          `json:"parentEvent,omitempty"`
+	NegRiskFeeBips    int             `json:"negRiskFeeBips,omitempty"`
 }
 
 type Team struct {

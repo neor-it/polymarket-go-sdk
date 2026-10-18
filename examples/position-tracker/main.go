@@ -81,21 +81,21 @@ func printPositions(ctx context.Context, client *polymarket.Client, user common.
 		return
 	}
 
-	if len(positions) == 0 {
+	if len(positions.Data) == 0 {
 		fmt.Println("\n当前无持仓")
 		return
 	}
 
 	fmt.Println("\n========== 当前持仓 ==========")
 
-	for _, p := range positions {
+	for _, p := range positions.Data {
 		fmt.Printf("市场: %s\n", p.Title)
 		fmt.Printf("  结果: %s\n", p.Outcome)
-		fmt.Printf("  数量: %s\n", p.Size.String())
+		fmt.Printf("  数量: %s\n", p.CurrentSize.String())
 		fmt.Printf("  平均价格: $%s\n", p.AvgPrice.String())
-		fmt.Printf("  当前价格: $%s\n", p.CurPrice.String())
+		fmt.Printf("  当前价格: $%s\n", p.CurrentPrice.String())
 		fmt.Printf("  当前价值: $%s\n", p.CurrentValue.String())
-		fmt.Printf("  未实现盈亏: $%s\n", p.CashPnl.String())
+		fmt.Printf("  未实现盈亏: $%s\n", p.UnrealizedPnl.String())
 		fmt.Printf("  盈亏比例: %s%%\n", p.PercentPnl.String())
 		fmt.Println()
 	}

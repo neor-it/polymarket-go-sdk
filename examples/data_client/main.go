@@ -17,11 +17,11 @@ func main() {
 	client := polymarket.NewClient()
 	ctx := context.Background()
 
-	health, err := client.Data.Health(ctx)
+	health, err := client.Data.Status(ctx)
 	if err != nil {
 		log.Printf("Data API health error: %v", err)
 	} else {
-		fmt.Printf("Data API health: %s\n", health)
+		fmt.Printf("Data API status: %+v\n", health)
 	}
 
 	userAddr := strings.TrimSpace(os.Getenv("DATA_USER_ADDRESS"))
@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Printf("Positions error: %v", err)
 	} else {
-		fmt.Printf("Positions: %d\n", len(positions))
+		fmt.Printf("Positions: %d\n", len(positions.Data))
 	}
 
 	trades, err := client.Data.Trades(ctx, &data.TradesRequest{
@@ -52,13 +52,13 @@ func main() {
 	if err != nil {
 		log.Printf("Trades error: %v", err)
 	} else {
-		fmt.Printf("Trades: %d\n", len(trades))
+		fmt.Printf("Trades: %d\n", len(trades.Data))
 	}
 
-	traded, err := client.Data.Traded(ctx, &data.TradedRequest{User: user})
+	traded, err := client.Data.UserStats(ctx, &data.UserStatsRequest{User: user})
 	if err != nil {
 		log.Printf("Traded error: %v", err)
-	} else {
-		fmt.Printf("Unique markets traded: %d\n", traded.Traded)
+	} else if traded.Data != nil {
+		fmt.Printf("Unique markets traded: %d\n", traded.Data.Trades)
 	}
 }

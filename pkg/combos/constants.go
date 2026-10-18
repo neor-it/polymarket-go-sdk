@@ -12,8 +12,8 @@ const (
 
 const (
 	comboMarketsPath     = "/v1/rfq/combo-markets"
-	comboPositionsPath   = "/v1/positions/combos"
-	comboActivityPath    = "/v1/activity/combos"
+	comboPositionsPath   = "/v2/positions/combos"
+	comboActivityPath    = "/v2/activity/combos"
 	builderRFQPath       = "/v1/builder/rfq/requests"
 	collateralReturnPath = "/v1/builder/rfq/collateral-return"
 )

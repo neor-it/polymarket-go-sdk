@@ -1,5 +1,55 @@
 # Release Notes
 
+## Version 0.2.0 (2026-10-18)
+
+### Data API v2 — breaking Go API changes
+
+- All retiring Data API reads use `/v2`, including the existing Combos feeds from
+  `main`. Responses expose typed `Data` and explicit cursor `Pagination`; request
+  offsets are removed. Follow `NextCursor` with the original filters until nil.
+- Position lifecycle reads use `PositionsRequest.Status`, replacing the separate
+  closed-position route. `UserStats` replaces `Traded`; an unknown user remains
+  `Data == nil`. Position basis, fees, current holdings and lifetime bought shares
+  retain their distinct v2 semantics.
+- Missing response envelopes and incomplete cursor metadata are rejected instead
+  of becoming empty portfolios or truncated history. Explicit null payloads remain
+  valid only for endpoints whose documented result is nullable.
+- Financial values decode directly into decimals. Missing/null required financial
+  values are rejected; explicit zero is valid, and documented nullable fields
+  remain pointers. Asset IDs retain their complete decimal-string representation.
+- Added typed token lookup, resolution, approvals, freshness, price history and
+  user analytics reads. Trader leaderboard pages and single-user standings have
+  separate typed methods because the upstream response shapes differ.
+- Gamma market versions select `clobTokenIds` for V1 and `positionIds` for V2.
+  Missing/unsupported versions and malformed outcome alignment fail closed.
+  `ConditionHash` right-pads native V2 bytes31 IDs and validates padded bytes32 IDs.
+- Shared transport honors `Retry-After`, bounded retry attempts and cancellation.
+  Official Data API `error` bodies preserve their message, retryability, trace ID
+  and parameter through `errors.As`, including exhausted retries; CLOB `message`
+  errors remain supported.
+
+### Combos and migration guidance
+
+This release includes the existing root Combos client, authentication and order
+implementation from `main`. Combo positions/activity now use the canonical v2
+rows and cursor envelope instead of synthetic legacy response fields.
+
+See [Data API v2 migration](docs/data-api-v2-migration.md) for the complete Go
+upgrade guide and economics mapping. Upstream Data API v1 retires on October 24,
+2026. The accounting snapshot endpoint remains outside that retirement.
+
+### Validation and release boundary
+
+All SDK packages and examples compile under `go test ./...`; focused race checks
+cover Data API, Gamma, Combos, transport and numeric/error types. Official OpenAPI
+schema tests and independent SDK/backend tests cover exact decimals, full-width
+IDs, cursor continuity, null handling and error contracts.
+
+This release recognizes Protocol V2 metadata but does not enable ExchangeV3
+signing or PositionManager writes. No live trading or mainnet settlement success
+is claimed. Existing CTF trading remains on its current signing configuration.
+
+
 ## Version 0.1.5 (2026-07-23)
 
 ### CLOB Order Response Compatibility

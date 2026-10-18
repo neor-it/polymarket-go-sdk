@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kms v1.50.5
 	github.com/ethereum/go-ethereum v1.17.2
 	github.com/gorilla/websocket v1.5.3
+	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.4.0
 	go.uber.org/goleak v1.3.0
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -149,15 +150,27 @@ func (c *clientImpl) GetComboRFQ(ctx context.Context, rfqID string) (GetRFQRespo
 
 func (c *clientImpl) ListUserComboPositions(ctx context.Context, req *UserComboPositionsRequest) (UserComboPositionsResponse, error) {
 	var resp UserComboPositionsResponse
-	query := userComboQuery(req)
-	err := c.dataTransport.Get(ctx, comboPositionsPath, query, &resp)
+	if req == nil {
+		return resp, fmt.Errorf("combo positions request is required")
+	}
+	query, err := userComboQuery(req)
+	if err != nil {
+		return resp, err
+	}
+	err = c.dataTransport.Get(ctx, comboPositionsPath, query, &resp)
 	return resp, err
 }
 
 func (c *clientImpl) ListUserComboActivity(ctx context.Context, req *UserComboActivityRequest) (UserComboActivityResponse, error) {
 	var resp UserComboActivityResponse
-	query := userComboActivityQuery(req)
-	err := c.dataTransport.Get(ctx, comboActivityPath, query, &resp)
+	if req == nil {
+		return resp, fmt.Errorf("combo activity request is required")
+	}
+	query, err := userComboActivityQuery(req)
+	if err != nil {
+		return resp, err
+	}
+	err = c.dataTransport.Get(ctx, comboActivityPath, query, &resp)
 	return resp, err
 }
 
@@ -214,46 +227,60 @@ func marshalExactBody(value any) ([]byte, error) {
 	return body, nil
 }
 
-func userComboQuery(req *UserComboPositionsRequest) url.Values {
-	query := url.Values{}
-	if req == nil {
-		return query
+func userComboQuery(req *UserComboPositionsRequest) (url.Values, error) {
+	query, err := comboDataQuery(req.User, req.Limit, req.Cursor, req.Conditions)
+	if err != nil {
+		return nil, err
 	}
-	setString(&query, "user", req.User)
 	setString(&query, "status", req.Status)
-	setString(&query, "sort", req.SortBy)
-	setString(&query, "sort_dir", req.SortDirection)
-	setString(&query, "market_id", req.MarketID)
-	setString(&query, "updatedAfter", req.UpdatedAfter)
-	setString(&query, "updatedBefore", req.UpdatedBefore)
-	setString(&query, "cursor", req.Cursor)
-	if req.Limit > 0 {
-		query.Set("limit", strconv.Itoa(req.Limit))
+	setString(&query, "sort_by", req.SortBy)
+	setString(&query, "sort_direction", req.SortDirection)
+	if req.UpdatedAfter != nil {
+		query.Set("updated_after", strconv.FormatInt(*req.UpdatedAfter, 10))
 	}
-	if req.Offset > 0 {
-		query.Set("offset", strconv.Itoa(req.Offset))
+	if req.UpdatedBefore != nil {
+		query.Set("updated_before", strconv.FormatInt(*req.UpdatedBefore, 10))
 	}
-	return query
+	return query, nil
+}
+func userComboActivityQuery(req *UserComboActivityRequest) (url.Values, error) {
+	return comboDataQuery(req.User, req.Limit, req.Cursor, req.Conditions)
 }
 
-func userComboActivityQuery(req *UserComboActivityRequest) url.Values {
-	query := url.Values{}
-	if req == nil {
-		return query
+const maxComboDataLimit = 1000
+const maxComboConditions = 20
+
+func comboDataQuery(user string, limit int, cursor string, conditions []common.Hash) (url.Values, error) {
+	if !common.IsHexAddress(user) {
+		return nil, fmt.Errorf("combo Data API user must be an address")
 	}
-	setString(&query, "user", req.User)
-	setString(&query, "type", req.Type)
-	setString(&query, "market_id", req.MarketID)
-	setString(&query, "updatedAfter", req.UpdatedAfter)
-	setString(&query, "updatedBefore", req.UpdatedBefore)
-	setString(&query, "cursor", req.Cursor)
-	if req.Limit > 0 {
-		query.Set("limit", strconv.Itoa(req.Limit))
+	if limit < 0 || limit > maxComboDataLimit {
+		return nil, fmt.Errorf("combo Data API limit must be between 0 and %d", maxComboDataLimit)
 	}
-	if req.Offset > 0 {
-		query.Set("offset", strconv.Itoa(req.Offset))
+	query := url.Values{"user": {user}}
+	setString(&query, "cursor", cursor)
+	if limit > 0 {
+		query.Set("limit", strconv.Itoa(limit))
 	}
-	return query
+	seen := make(map[common.Hash]struct{}, len(conditions))
+	ids := make([]string, 0, len(conditions))
+	for _, condition := range conditions {
+		if condition == (common.Hash{}) {
+			return nil, fmt.Errorf("combo condition must not be zero")
+		}
+		if _, ok := seen[condition]; ok {
+			continue
+		}
+		seen[condition] = struct{}{}
+		ids = append(ids, condition.Hex())
+	}
+	if len(ids) > maxComboConditions {
+		return nil, fmt.Errorf("combo conditions exceed %d", maxComboConditions)
+	}
+	if len(ids) > 0 {
+		query.Set("condition", strings.Join(ids, ","))
+	}
+	return query, nil
 }
 
 func setString(query *url.Values, key, value string) {

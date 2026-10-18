@@ -1,6 +1,10 @@
 package combos
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/neor-it/polymarket-go-sdk/pkg/data"
+)
 
 // Direction is the requester trade direction in a Combo RFQ.
 type Direction string
@@ -193,80 +197,32 @@ type ComboSignedOrder struct {
 	Signature     string `json:"signature"`
 }
 
-// UserComboPositionsRequest filters user Combo positions.
+// UserComboPositionsRequest filters cursor-paginated Data API v2 Combo positions.
 type UserComboPositionsRequest struct {
 	User          string
 	Status        string
 	SortBy        string
 	SortDirection string
-	MarketID      string
+	Conditions    []common.Hash
 	Limit         int
-	Offset        int
-	UpdatedAfter  string
-	UpdatedBefore string
+	UpdatedAfter  *int64
+	UpdatedBefore *int64
 	Cursor        string
 }
 
-// UserComboPositionsResponse contains user Combo positions.
-type UserComboPositionsResponse struct {
-	Positions  []UserComboPosition `json:"positions"`
-	NextCursor string              `json:"next_cursor,omitempty"`
-}
+// UserComboPositionsResponse is the canonical v2 Combo positions page.
+type UserComboPositionsResponse = data.Page[data.ComboPosition]
 
-// UserComboPosition describes a user Combo position from Data API.
-type UserComboPosition struct {
-	ComboConditionID string             `json:"combo_condition_id,omitempty"`
-	ComboPositionID  string             `json:"combo_position_id,omitempty"`
-	MarketID         string             `json:"market_id,omitempty"`
-	Title            string             `json:"title,omitempty"`
-	Status           string             `json:"status,omitempty"`
-	Outcome          string             `json:"outcome,omitempty"`
-	SizeE6           string             `json:"size_e6,omitempty"`
-	ValueE6          string             `json:"value_e6,omitempty"`
-	UpdatedAt        string             `json:"updated_at,omitempty"`
-	Legs             []ComboPositionLeg `json:"legs,omitempty"`
-	Raw              json.RawMessage    `json:"-"`
-}
-
-// ComboPositionLeg describes one leg inside a user Combo position.
-type ComboPositionLeg struct {
-	ConditionID string `json:"condition_id,omitempty"`
-	PositionID  string `json:"position_id,omitempty"`
-	MarketSlug  string `json:"market_slug,omitempty"`
-	MarketTitle string `json:"market_title,omitempty"`
-	Outcome     string `json:"outcome,omitempty"`
-}
-
-// UserComboActivityRequest filters user Combo activity.
+// UserComboActivityRequest filters cursor-paginated Data API v2 Combo activity.
 type UserComboActivityRequest struct {
-	User          string
-	Type          string
-	MarketID      string
-	Limit         int
-	Offset        int
-	UpdatedAfter  string
-	UpdatedBefore string
-	Cursor        string
+	User       string
+	Conditions []common.Hash
+	Limit      int
+	Cursor     string
 }
 
-// UserComboActivityResponse contains user Combo activity entries.
-type UserComboActivityResponse struct {
-	Activity   []UserComboActivity `json:"activity"`
-	NextCursor string              `json:"next_cursor,omitempty"`
-}
-
-// UserComboActivity describes a combo activity row.
-type UserComboActivity struct {
-	ID               string             `json:"id,omitempty"`
-	Type             string             `json:"type,omitempty"`
-	ComboConditionID string             `json:"combo_condition_id,omitempty"`
-	ComboPositionID  string             `json:"combo_position_id,omitempty"`
-	AmountE6         string             `json:"amount_e6,omitempty"`
-	TxHash           string             `json:"tx_hash,omitempty"`
-	Timestamp        string             `json:"timestamp,omitempty"`
-	Legs             []ComboPositionLeg `json:"legs,omitempty"`
-	Raw              json.RawMessage    `json:"-"`
-}
+// UserComboActivityResponse is the canonical v2 Combo activity page.
+type UserComboActivityResponse = data.Page[data.ComboActivity]
 
 // CollateralReturnRequest starts a collateral return action for eligible Combo positions.
 type CollateralReturnRequest struct {

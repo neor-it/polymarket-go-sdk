@@ -146,15 +146,15 @@ func TestListUserComboPositionsAndActivity(t *testing.T) {
 				if req.URL.Path != comboPositionsPath {
 					t.Fatalf("positions path = %q", req.URL.Path)
 				}
-				if got := req.URL.Query().Get("user"); got != "0xabc" {
+				if got := req.URL.Query().Get("user"); got != "0x1111111111111111111111111111111111111111" {
 					t.Fatalf("positions user = %q", got)
 				}
-				return jsonResponse(`{"positions":[{"combo_condition_id":"0x1","combo_position_id":"10","status":"OPEN","legs":[{"position_id":"1","outcome":"YES"}]}]}`)
+				return jsonResponse(`{"data":[{"combo_condition_id":"0x1","combo_position_id":"10","status":"OPEN","current_size":1.000001,"entry_avg_price_usdc":0.5,"entry_cost_usdc":0.5,"entry_fees_usdc":0,"gross_entry_cost_usdc":0.5,"realized_payout_usdc":0,"legs":[{"leg_position_id":"1","leg_current_price":0.5,"leg_outcome_label":"YES"}]}],"pagination":{"has_more":false,"offset":0,"limit":2,"next_cursor":null}}`)
 			case 2:
 				if req.URL.Path != comboActivityPath {
 					t.Fatalf("activity path = %q", req.URL.Path)
 				}
-				return jsonResponse(`{"activity":[{"id":"act-1","type":"split","amount_e6":"1000000"}],"next_cursor":"next"}`)
+				return jsonResponse(`{"data":[{"id":"act-1","type":"SPLIT","amount_usdc":1.000001}],"pagination":{"offset":0,"limit":2,"next_cursor":"next","has_more":true}}`)
 			default:
 				t.Fatalf("unexpected call %d", call)
 				return nil, nil
@@ -163,19 +163,19 @@ func TestListUserComboPositionsAndActivity(t *testing.T) {
 	}
 	client := NewClient(Config{HTTPClient: doer})
 
-	positions, err := client.ListUserComboPositions(context.Background(), &UserComboPositionsRequest{User: "0xabc", Limit: 5})
+	positions, err := client.ListUserComboPositions(context.Background(), &UserComboPositionsRequest{User: "0x1111111111111111111111111111111111111111", Limit: 5})
 	if err != nil {
 		t.Fatalf("ListUserComboPositions returned error: %v", err)
 	}
-	if len(positions.Positions) != 1 || positions.Positions[0].Status != "OPEN" {
+	if len(positions.Data) != 1 || positions.Data[0].Status != "OPEN" {
 		t.Fatalf("unexpected positions: %+v", positions)
 	}
 
-	activity, err := client.ListUserComboActivity(context.Background(), &UserComboActivityRequest{User: "0xabc", Type: "split"})
+	activity, err := client.ListUserComboActivity(context.Background(), &UserComboActivityRequest{User: "0x1111111111111111111111111111111111111111"})
 	if err != nil {
 		t.Fatalf("ListUserComboActivity returned error: %v", err)
 	}
-	if len(activity.Activity) != 1 || activity.NextCursor != "next" {
+	if len(activity.Data) != 1 || activity.Pagination.NextCursor == nil || *activity.Pagination.NextCursor != "next" {
 		t.Fatalf("unexpected activity: %+v", activity)
 	}
 }

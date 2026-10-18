@@ -2,35 +2,24 @@ package data
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"strconv"
-	"strings"
-
-	sdkerrors "github.com/neor-it/polymarket-go-sdk/pkg/errors"
-	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
-	"github.com/neor-it/polymarket-go-sdk/pkg/types"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neor-it/polymarket-go-sdk/pkg/transport"
+	"github.com/pkg/errors"
+	"net/url"
 )
 
+// BaseURL is the public Data API origin.
+const BaseURL = "https://data-api.polymarket.com"
 const (
-	BaseURL = "https://data-api.polymarket.com"
+	maxConditions         = 20
+	maxPageLimit          = 1000
+	maxPriceHistoryLimit  = 10000
+	maxBuilderVolumeLimit = 90
 )
 
-// Use unified error definitions from pkg/errors
-var (
-	ErrMissingRequest      = sdkerrors.ErrMissingRequest
-	ErrMissingUser         = sdkerrors.ErrMissingUser
-	ErrInvalidMarketFilter = sdkerrors.ErrInvalidMarketFilter
-	ErrInvalidTradeFilter  = sdkerrors.ErrInvalidTradeFilter
-)
+type clientImpl struct{ httpClient *transport.Client }
 
-type clientImpl struct {
-	httpClient *transport.Client
-}
-
-// NewClient creates a Data API client.
+// NewClient creates a v2 client using the supplied transport.
 func NewClient(httpClient *transport.Client) Client {
 	if httpClient == nil {
 		httpClient = transport.NewClient(nil, BaseURL)
@@ -38,466 +27,399 @@ func NewClient(httpClient *transport.Client) Client {
 	return &clientImpl{httpClient: httpClient}
 }
 
-func (c *clientImpl) Health(ctx context.Context) (string, error) {
-	var resp HealthResponse
-	if err := c.httpClient.Get(ctx, "", nil, &resp); err != nil {
-		var raw string
-		if err2 := c.httpClient.Get(ctx, "", nil, &raw); err2 == nil {
-			return raw, nil
-		}
-		return "", err
-	}
-	return resp.Data, nil
-}
-
-func (c *clientImpl) Positions(ctx context.Context, req *PositionsRequest) (PositionsResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	if req.User == (common.Address{}) {
-		return nil, ErrMissingUser
-	}
-	if err := validateIntRange(req.Limit, 0, 500, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 10000, "offset"); err != nil {
-		return nil, err
-	}
-	if err := validateTitle(req.Title, 100); err != nil {
-		return nil, err
-	}
-	q.Set("user", req.User.Hex())
-	if err := applyMarketFilter(q, req.Filter); err != nil {
-		return nil, err
-	}
-	addDecimal(q, "sizeThreshold", req.SizeThreshold)
-	addBool(q, "redeemable", req.Redeemable)
-	addBool(q, "mergeable", req.Mergeable)
-	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
-	addString(q, "sortBy", req.SortBy)
-	addString(q, "sortDirection", req.SortDirection)
-	addString(q, "title", req.Title)
-
-	var resp PositionsResponse
-	err := c.httpClient.Get(ctx, "/positions", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) Trades(ctx context.Context, req *TradesRequest) (TradesResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	if err := validateIntRange(req.Limit, 0, 10000, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 10000, "offset"); err != nil {
-		return nil, err
-	}
-	addAddress(q, "user", req.User)
-	if err := applyMarketFilter(q, req.Filter); err != nil {
-		return nil, err
-	}
-	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
-	addBool(q, "takerOnly", req.TakerOnly)
-	if err := applyTradeFilter(q, req.TradeFilter); err != nil {
-		return nil, err
-	}
-	addString(q, "side", req.Side)
-
-	var resp TradesResponse
-	err := c.httpClient.Get(ctx, "/trades", q, &resp)
-	return resp, err
-}
-
+// Activity reads the corresponding Data API v2 endpoint.
 func (c *clientImpl) Activity(ctx context.Context, req *ActivityRequest) (ActivityResponse, error) {
+	var resp ActivityResponse
 	if req == nil {
-		return nil, ErrMissingRequest
+		return resp, errors.Errorf("activity request is required")
 	}
 	q := url.Values{}
-	if req.User == (common.Address{}) {
-		return nil, ErrMissingUser
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("activity limit must be between 0 and 1000")
 	}
-	if err := validateIntRange(req.Limit, 0, 500, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 10000, "offset"); err != nil {
-		return nil, err
-	}
-	if err := validateInt64Min(req.Start, 0, "start"); err != nil {
-		return nil, err
-	}
-	if err := validateInt64Min(req.End, 0, "end"); err != nil {
-		return nil, err
-	}
-	q.Set("user", req.User.Hex())
 	if err := applyMarketFilter(q, req.Filter); err != nil {
-		return nil, err
+		return resp, errors.Wrap(err, "activity filter")
 	}
-	addStringSlice(q, "type", activityTypeStrings(req.ActivityTypes))
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
+	}
 	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
+	addString(q, "cursor", req.Cursor)
+	addActivityTypes(q, req.ActivityTypes)
+	addString(q, "side", req.Side)
 	addInt64(q, "start", req.Start)
 	addInt64(q, "end", req.End)
-	addString(q, "sortBy", req.SortBy)
-	addString(q, "sortDirection", req.SortDirection)
-	addString(q, "side", req.Side)
-
-	var resp ActivityResponse
-	err := c.httpClient.Get(ctx, "/activity", q, &resp)
-	return resp, err
+	addString(q, "sort_by", req.SortBy)
+	addString(q, "sort_direction", req.SortDirection)
+	addBool(q, "exclude_deposits_withdrawals", req.ExcludeDepositsWithdrawals)
+	if err := c.httpClient.Get(ctx, "/v2/activity", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/activity")
+	}
+	return resp, nil
 }
 
-func (c *clientImpl) Holders(ctx context.Context, req *HoldersRequest) (HoldersResponse, error) {
+// Approvals reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Approvals(ctx context.Context, req *ApprovalsRequest) (ApprovalsResponse, error) {
+	var resp ApprovalsResponse
 	if req == nil {
-		return nil, ErrMissingRequest
+		return resp, errors.Errorf("approvals request is required")
 	}
 	q := url.Values{}
-	if err := validateIntRange(req.Limit, 0, 20, "limit"); err != nil {
-		return nil, err
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
 	}
-	if err := validateIntRange(req.MinBalance, 0, 999999, "min_balance"); err != nil {
-		return nil, err
+	if err := c.httpClient.Get(ctx, "/v2/approvals", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/approvals")
 	}
-	addHashSlice(q, "market", req.Markets)
-	addInt(q, "limit", req.Limit)
-	addInt(q, "minBalance", req.MinBalance)
-
-	var resp HoldersResponse
-	err := c.httpClient.Get(ctx, "/holders", q, &resp)
-	return resp, err
+	return resp, nil
 }
 
-func (c *clientImpl) Value(ctx context.Context, req *ValueRequest) (ValueResponse, error) {
+// BiggestWinners reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) BiggestWinners(ctx context.Context, req *BiggestWinnersRequest) (BiggestWinnersResponse, error) {
+	var resp BiggestWinnersResponse
 	if req == nil {
-		return nil, ErrMissingRequest
+		return resp, errors.Errorf("biggestwinners request is required")
 	}
 	q := url.Values{}
-	q.Set("user", req.User.Hex())
-	addHashSlice(q, "market", req.Markets)
-
-	var resp ValueResponse
-	err := c.httpClient.Get(ctx, "/value", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) ClosedPositions(ctx context.Context, req *ClosedPositionsRequest) (ClosedPositionsResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("biggestwinners limit must be between 0 and 1000")
 	}
-	q := url.Values{}
-	if req.User == (common.Address{}) {
-		return nil, ErrMissingUser
-	}
-	if err := validateTitle(req.Title, 100); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Limit, 0, 50, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 100000, "offset"); err != nil {
-		return nil, err
-	}
-	q.Set("user", req.User.Hex())
-	if err := applyMarketFilter(q, req.Filter); err != nil {
-		return nil, err
-	}
-	addString(q, "title", req.Title)
-	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
-	addString(q, "sortBy", req.SortBy)
-	addString(q, "sortDirection", req.SortDirection)
-
-	var resp ClosedPositionsResponse
-	err := c.httpClient.Get(ctx, "/closed-positions", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) Traded(ctx context.Context, req *TradedRequest) (TradedResponse, error) {
-	if req == nil {
-		return TradedResponse{}, ErrMissingRequest
-	}
-	q := url.Values{}
-	q.Set("user", req.User.Hex())
-
-	var resp TradedResponse
-	err := c.httpClient.Get(ctx, "/traded", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) OpenInterest(ctx context.Context, req *OpenInterestRequest) (OpenInterestResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	addHashSlice(q, "market", req.Markets)
-
-	var resp OpenInterestResponse
-	err := c.httpClient.Get(ctx, "/oi", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) LiveVolume(ctx context.Context, req *LiveVolumeRequest) (LiveVolumeResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	if req.ID == 0 {
-		return nil, fmt.Errorf("id is required")
-	}
-	q.Set("id", strconv.FormatInt(req.ID, 10))
-
-	var resp LiveVolumeResponse
-	err := c.httpClient.Get(ctx, "/live-volume", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) Leaderboard(ctx context.Context, req *LeaderboardRequest) (LeaderboardResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	if err := validateIntRange(req.Limit, 1, 50, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 1000, "offset"); err != nil {
-		return nil, err
-	}
+	addString(q, "time_period", req.TimePeriod)
 	addString(q, "category", req.Category)
-	addString(q, "timePeriod", req.TimePeriod)
-	addString(q, "orderBy", req.OrderBy)
 	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
-	addAddress(q, "user", req.User)
-	addString(q, "userName", req.UserName)
-
-	var resp LeaderboardResponse
-	err := c.httpClient.Get(ctx, "/v1/leaderboard", q, &resp)
-	return resp, err
+	addString(q, "cursor", req.Cursor)
+	if err := c.httpClient.Get(ctx, "/v2/biggest-winners", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/biggest-winners")
+	}
+	return resp, nil
 }
 
+// BuildersLeaderboard reads the corresponding Data API v2 endpoint.
 func (c *clientImpl) BuildersLeaderboard(ctx context.Context, req *BuildersLeaderboardRequest) (BuildersLeaderboardResponse, error) {
-	if req == nil {
-		return nil, ErrMissingRequest
-	}
-	q := url.Values{}
-	if err := validateIntRange(req.Limit, 0, 50, "limit"); err != nil {
-		return nil, err
-	}
-	if err := validateIntRange(req.Offset, 0, 1000, "offset"); err != nil {
-		return nil, err
-	}
-	addString(q, "timePeriod", req.TimePeriod)
-	addInt(q, "limit", req.Limit)
-	addInt(q, "offset", req.Offset)
-
 	var resp BuildersLeaderboardResponse
-	err := c.httpClient.Get(ctx, "/v1/builders/leaderboard", q, &resp)
-	return resp, err
-}
-
-func (c *clientImpl) BuildersVolume(ctx context.Context, req *BuildersVolumeRequest) (BuildersVolumeResponse, error) {
 	if req == nil {
-		return nil, ErrMissingRequest
+		return resp, errors.Errorf("buildersleaderboard request is required")
 	}
 	q := url.Values{}
-	addString(q, "timePeriod", req.TimePeriod)
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("buildersleaderboard limit must be between 0 and 1000")
+	}
+	addString(q, "time_period", req.TimePeriod)
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	if err := c.httpClient.Get(ctx, "/v2/builders/leaderboard", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/builders/leaderboard")
+	}
+	return resp, nil
+}
 
+// BuildersVolume reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) BuildersVolume(ctx context.Context, req *BuildersVolumeRequest) (BuildersVolumeResponse, error) {
 	var resp BuildersVolumeResponse
-	err := c.httpClient.Get(ctx, "/v1/builders/volume", q, &resp)
-	return resp, err
+	if req == nil {
+		return resp, errors.Errorf("buildersvolume request is required")
+	}
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxBuilderVolumeLimit) {
+		return resp, errors.Errorf("buildersvolume limit must be between 0 and 90")
+	}
+	addString(q, "interval", req.Interval)
+	addInt(q, "limit", req.Limit)
+	if err := c.httpClient.Get(ctx, "/v2/builders/volume", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/builders/volume")
+	}
+	return resp, nil
 }
 
-// Helpers.
-func addString(q url.Values, key string, val interface{}) {
-	if val == nil {
-		return
+// Holders reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Holders(ctx context.Context, req *HoldersRequest) (HoldersResponse, error) {
+	var resp HoldersResponse
+	if req == nil {
+		return resp, errors.Errorf("holders request is required")
 	}
-	switch v := val.(type) {
-	case *string:
-		if v != nil && *v != "" {
-			q.Set(key, *v)
-		}
-	case *PositionSortBy:
-		q.Set(key, stringValue(v))
-	case *ClosedPositionSortBy:
-		q.Set(key, stringValue(v))
-	case *ActivitySortBy:
-		q.Set(key, stringValue(v))
-	case *SortDirection:
-		q.Set(key, stringValue(v))
-	case *Side:
-		q.Set(key, stringValue(v))
-	case *LeaderboardCategory:
-		q.Set(key, stringValue(v))
-	case *LeaderboardOrderBy:
-		q.Set(key, stringValue(v))
-	case *TimePeriod:
-		q.Set(key, stringValue(v))
-	default:
-		if s, ok := val.(string); ok && s != "" {
-			q.Set(key, s)
-		}
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("holders limit must be between 0 and 1000")
 	}
+	if err := addConditions(q, req.Conditions); err != nil {
+		return resp, errors.Wrap(err, "holders conditions")
+	}
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	addDecimal(q, "min_balance", req.MinBalance)
+	addBool(q, "include_pnl", req.IncludePnl)
+	if err := c.httpClient.Get(ctx, "/v2/holders", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/holders")
+	}
+	return resp, nil
 }
 
-func addStringSlice(q url.Values, key string, vals []string) {
-	if len(vals) == 0 {
-		return
+// Leaderboard reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Leaderboard(ctx context.Context, req *LeaderboardRequest) (LeaderboardResponse, error) {
+	var resp LeaderboardResponse
+	if req == nil {
+		return resp, errors.Errorf("leaderboard request is required")
 	}
-	filtered := make([]string, 0, len(vals))
-	for _, v := range vals {
-		if v != "" {
-			filtered = append(filtered, v)
-		}
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("leaderboard limit must be between 0 and 1000")
 	}
-	if len(filtered) == 0 {
-		return
+	addString(q, "time_period", req.TimePeriod)
+	addString(q, "category", req.Category)
+	addString(q, "sort_by", req.SortBy)
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	if err := c.httpClient.Get(ctx, "/v2/leaderboard", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/leaderboard")
 	}
-	q.Set(key, strings.Join(filtered, ","))
+	return resp, nil
 }
 
-func addInt64Slice(q url.Values, key string, vals []int64) {
-	if len(vals) == 0 {
-		return
+// LiveVolume reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) LiveVolume(ctx context.Context, req *LiveVolumeRequest) (LiveVolumeResponse, error) {
+	var resp LiveVolumeResponse
+	if req == nil {
+		return resp, errors.Errorf("livevolume request is required")
 	}
-	filtered := make([]string, 0, len(vals))
-	for _, v := range vals {
-		filtered = append(filtered, strconv.FormatInt(v, 10))
+	q := url.Values{}
+	addEventIDs(q, req.EventIDs)
+	if err := c.httpClient.Get(ctx, "/v2/live-volume", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/live-volume")
 	}
-	if len(filtered) == 0 {
-		return
-	}
-	q.Set(key, strings.Join(filtered, ","))
+	return resp, nil
 }
 
-func addInt(q url.Values, key string, val *int) {
-	if val != nil {
-		q.Set(key, strconv.Itoa(*val))
+// OpenInterest reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) OpenInterest(ctx context.Context, req *OpenInterestRequest) (OpenInterestResponse, error) {
+	var resp OpenInterestResponse
+	if req == nil {
+		return resp, errors.Errorf("openinterest request is required")
 	}
+	q := url.Values{}
+	if err := addConditions(q, req.Conditions); err != nil {
+		return resp, errors.Wrap(err, "openinterest conditions")
+	}
+	if err := c.httpClient.Get(ctx, "/v2/oi", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/oi")
+	}
+	return resp, nil
 }
 
-func addInt64(q url.Values, key string, val *int64) {
-	if val != nil {
-		q.Set(key, strconv.FormatInt(*val, 10))
+// Positions reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Positions(ctx context.Context, req *PositionsRequest) (PositionsResponse, error) {
+	var resp PositionsResponse
+	if req == nil {
+		return resp, errors.Errorf("positions request is required")
 	}
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("positions limit must be between 0 and 1000")
+	}
+	if err := applyMarketFilter(q, req.Filter); err != nil {
+		return resp, errors.Wrap(err, "positions filter")
+	}
+	if err := applyTradeFilter(q, req.TradeFilter); err != nil {
+		return resp, errors.Wrap(err, "positions quantity filter")
+	}
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
+	}
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	addString(q, "status", req.Status)
+	addString(q, "title", req.Title)
+	addBool(q, "include_archived", req.IncludeArchived)
+	addString(q, "sort_by", req.SortBy)
+	addInt64(q, "start", req.Start)
+	addInt64(q, "end", req.End)
+	addString(q, "sort_direction", req.SortDirection)
+	if err := c.httpClient.Get(ctx, "/v2/positions", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/positions")
+	}
+	return resp, nil
 }
 
-func addBool(q url.Values, key string, val *bool) {
-	if val != nil {
-		q.Set(key, strconv.FormatBool(*val))
+// PricesHistory reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) PricesHistory(ctx context.Context, req *PricesHistoryRequest) (PricesHistoryResponse, error) {
+	var resp PricesHistoryResponse
+	if req == nil {
+		return resp, errors.Errorf("priceshistory request is required")
 	}
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPriceHistoryLimit) {
+		return resp, errors.Errorf("priceshistory limit must be between 0 and 10000")
+	}
+	addString(q, "token_id", req.TokenID)
+	addInt64(q, "start", req.Start)
+	addInt64(q, "end", req.End)
+	addString(q, "interval", req.Interval)
+	addInt64(q, "bucket_seconds", req.BucketSeconds)
+	addInt64(q, "as_of", req.AsOf)
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	if err := c.httpClient.Get(ctx, "/v2/prices-history", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/prices-history")
+	}
+	return resp, nil
 }
 
-func addDecimal(q url.Values, key string, val *types.Decimal) {
-	if val != nil {
-		q.Set(key, val.String())
+// Resolutions reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Resolutions(ctx context.Context, req *ResolutionsRequest) (ResolutionsResponse, error) {
+	var resp ResolutionsResponse
+	if req == nil {
+		return resp, errors.Errorf("resolutions request is required")
 	}
+	q := url.Values{}
+	addString(q, "question_id", req.QuestionID)
+	if err := addConditions(q, req.Conditions); err != nil {
+		return resp, errors.Wrap(err, "resolutions conditions")
+	}
+	addEventIDs(q, req.EventIDs)
+	if err := c.httpClient.Get(ctx, "/v2/resolutions", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/resolutions")
+	}
+	return resp, nil
 }
 
-func addAddress(q url.Values, key string, val *common.Address) {
-	if val != nil {
-		q.Set(key, val.Hex())
+// Status reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Status(ctx context.Context) (StatusResponse, error) {
+	var resp StatusResponse
+	q := url.Values{}
+
+	if err := c.httpClient.Get(ctx, "/v2/status", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/status")
 	}
+	return resp, nil
 }
 
-func addHashSlice(q url.Values, key string, vals []common.Hash) {
-	if len(vals) == 0 {
-		return
+// Tokens reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Tokens(ctx context.Context, req *TokensRequest) (TokensResponse, error) {
+	var resp TokensResponse
+	if req == nil {
+		return resp, errors.Errorf("tokens request is required")
 	}
-	out := make([]string, 0, len(vals))
-	for _, h := range vals {
-		if (h != common.Hash{}) {
-			out = append(out, h.Hex())
-		}
+	q := url.Values{}
+	addString(q, "token_id", req.TokenID)
+	if err := addConditions(q, req.Conditions); err != nil {
+		return resp, errors.Wrap(err, "tokens conditions")
 	}
-	if len(out) == 0 {
-		return
+	if err := c.httpClient.Get(ctx, "/v2/tokens", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/tokens")
 	}
-	q.Set(key, strings.Join(out, ","))
+	return resp, nil
 }
 
-func applyMarketFilter(q url.Values, filter *MarketFilter) error {
-	if filter == nil {
-		return nil
+// Trades reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Trades(ctx context.Context, req *TradesRequest) (TradesResponse, error) {
+	var resp TradesResponse
+	if req == nil {
+		return resp, errors.Errorf("trades request is required")
 	}
-	if len(filter.Markets) > 0 && len(filter.EventIDs) > 0 {
-		return ErrInvalidMarketFilter
+	q := url.Values{}
+	if req.Limit != nil && (*req.Limit < 0 || *req.Limit > maxPageLimit) {
+		return resp, errors.Errorf("trades limit must be between 0 and 1000")
 	}
-	if len(filter.Markets) > 0 {
-		addHashSlice(q, "market", filter.Markets)
+	if err := applyMarketFilter(q, req.Filter); err != nil {
+		return resp, errors.Wrap(err, "trades filter")
 	}
-	if len(filter.EventIDs) > 0 {
-		addInt64Slice(q, "eventId", filter.EventIDs)
+	if err := applyTradeFilter(q, req.TradeFilter); err != nil {
+		return resp, errors.Wrap(err, "trades quantity filter")
 	}
-	return nil
+	addAddress(q, "user", req.User)
+	addInt(q, "limit", req.Limit)
+	addString(q, "cursor", req.Cursor)
+	addBool(q, "taker_only", req.TakerOnly)
+	addInt64(q, "start", req.Start)
+	addInt64(q, "end", req.End)
+	addString(q, "side", req.Side)
+	if err := c.httpClient.Get(ctx, "/v2/trades", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/trades")
+	}
+	return resp, nil
 }
 
-func applyTradeFilter(q url.Values, filter *TradeFilter) error {
-	if filter == nil {
-		return nil
+// UserPnl reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) UserPnl(ctx context.Context, req *UserPnlRequest) (UserPnlResponse, error) {
+	var resp UserPnlResponse
+	if req == nil {
+		return resp, errors.Errorf("userpnl request is required")
 	}
-	if filter.FilterType == "" {
-		return ErrInvalidTradeFilter
+	q := url.Values{}
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
 	}
-	if filter.FilterAmount.Sign() < 0 {
-		return fmt.Errorf("filter_amount must be non-negative")
+	addString(q, "interval", req.Interval)
+	addString(q, "fidelity", req.Fidelity)
+	if err := c.httpClient.Get(ctx, "/v2/user-pnl", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/user-pnl")
 	}
-	q.Set("filterType", string(filter.FilterType))
-	q.Set("filterAmount", filter.FilterAmount.String())
-	return nil
+	return resp, nil
 }
 
-func validateIntRange(val *int, min, max int, name string) error {
-	if val == nil {
-		return nil
+// UserStats reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) UserStats(ctx context.Context, req *UserStatsRequest) (UserStatsResponse, error) {
+	var resp UserStatsResponse
+	if req == nil {
+		return resp, errors.Errorf("userstats request is required")
 	}
-	if *val < min || *val > max {
-		return BoundedIntError{Value: *val, Min: min, Max: max, ParamName: name}
+	q := url.Values{}
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
 	}
-	return nil
+	if err := c.httpClient.Get(ctx, "/v2/user-stats", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/user-stats")
+	}
+	return resp, nil
 }
 
-func validateInt64Min(val *int64, min int64, name string) error {
-	if val == nil {
-		return nil
+// UserVolume reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) UserVolume(ctx context.Context, req *UserVolumeRequest) (UserVolumeResponse, error) {
+	var resp UserVolumeResponse
+	if req == nil {
+		return resp, errors.Errorf("uservolume request is required")
 	}
-	if *val < min {
-		return fmt.Errorf("%s must be >= %d (got %d)", name, min, *val)
+	q := url.Values{}
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
 	}
-	return nil
+	addInt64(q, "start", req.Start)
+	addInt64(q, "end", req.End)
+	if err := c.httpClient.Get(ctx, "/v2/user-volume", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/user-volume")
+	}
+	return resp, nil
 }
 
-func validateTitle(val *string, maxLen int) error {
-	if val == nil {
-		return nil
+// Value reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) Value(ctx context.Context, req *ValueRequest) (ValueResponse, error) {
+	var resp ValueResponse
+	if req == nil {
+		return resp, errors.Errorf("value request is required")
 	}
-	if len(*val) > maxLen {
-		return fmt.Errorf("title must be at most %d characters", maxLen)
+	q := url.Values{}
+	if req.User != (common.Address{}) {
+		q.Set("user", req.User.Hex())
 	}
-	return nil
+	if err := addConditions(q, req.Conditions); err != nil {
+		return resp, errors.Wrap(err, "value conditions")
+	}
+	if err := c.httpClient.Get(ctx, "/v2/value", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get /v2/value")
+	}
+	return resp, nil
 }
 
-func stringValue[T ~string](v *T) string {
-	if v == nil {
-		return ""
+// LeaderboardUser reads the corresponding Data API v2 endpoint.
+func (c *clientImpl) LeaderboardUser(ctx context.Context, req *LeaderboardUserRequest) (LeaderboardUserResponse, error) {
+	var resp LeaderboardUserResponse
+	if req == nil || req.User == (common.Address{}) {
+		return resp, errors.New("leaderboard user address is required")
 	}
-	return string(*v)
-}
-
-func activityTypeStrings(vals []ActivityType) []string {
-	if len(vals) == 0 {
-		return nil
+	q := url.Values{"user": {req.User.Hex()}}
+	addString(q, "time_period", req.TimePeriod)
+	addString(q, "category", req.Category)
+	if err := c.httpClient.Get(ctx, "/v2/leaderboard", q, &resp); err != nil {
+		return resp, errors.Wrap(err, "get user leaderboard")
 	}
-	out := make([]string, 0, len(vals))
-	for _, v := range vals {
-		if v == "" {
-			continue
-		}
-		out = append(out, string(v))
-	}
-	return out
+	return resp, nil
 }

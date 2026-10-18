@@ -369,3 +369,11 @@ Distributed under the Apache License 2.0. See `LICENSE` for more information.
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=neor-it/polymarket-go-sdk&type=Date)](https://www.star-history.com/#neor-it/polymarket-go-sdk&Date)
+
+## Data API v2 and protocol migration
+
+The SDK reads the cursor-paginated Data API v2. See the
+[SDK v0.2.0 migration guide](docs/data-api-v2-migration.md) for breaking Go API
+changes, exact position economics, Combo feed changes and Gamma protocol
+selection. Data API v1 retires on October 24, 2026. Protocol V2 metadata support
+does not implicitly enable ExchangeV3 trading.

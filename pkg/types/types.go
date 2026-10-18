@@ -30,10 +30,31 @@ type Pagination struct {
 
 // Error represents a standard API error.
 type Error struct {
-	Status  int    `json:"status"`
-	Code    string `json:"code,omitempty"`
-	Message string `json:"message"`
-	Path    string `json:"path,omitempty"`
+	Status    int     `json:"status"`
+	Code      string  `json:"code,omitempty"`
+	Message   string  `json:"message"`
+	Path      string  `json:"path,omitempty"`
+	Retryable *bool   `json:"retryable,omitempty"`
+	TraceID   string  `json:"trace_id,omitempty"`
+	Parameter *string `json:"parameter,omitempty"`
+}
+
+// UnmarshalJSON normalizes the CLOB message and Data API v2 error vocabularies.
+// Optional retryability and tracing metadata remain available through errors.As.
+func (e *Error) UnmarshalJSON(payload []byte) error {
+	type errorFields Error
+	var decoded struct {
+		errorFields
+		ProviderMessage string `json:"error"`
+	}
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		return fmt.Errorf("decode API error: %w", err)
+	}
+	*e = Error(decoded.errorFields)
+	if e.Message == "" {
+		e.Message = decoded.ProviderMessage
+	}
+	return nil
 }
 
 func (e *Error) Error() string {

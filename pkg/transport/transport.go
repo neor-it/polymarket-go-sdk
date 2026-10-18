@@ -230,6 +230,7 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 	}
 
 	var lastErr error
+	var retryAfter time.Duration
 	for attempt := 0; attempt <= defaultMaxRetries; attempt++ {
 		if attempt > 0 {
 			// Exponential backoff: 100ms, 200ms, 400ms...
@@ -237,6 +238,10 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 			if wait > defaultMaxWait {
 				wait = defaultMaxWait
 			}
+			if retryAfter > wait {
+				wait = retryAfter
+			}
+			retryAfter = 0
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -325,16 +330,23 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 
 		// Check for error status codes
 		if resp.StatusCode >= 400 {
+			var apiErr types.Error
+			hasAPIError := json.Unmarshal(respBytes, &apiErr) == nil && (apiErr.Message != "" || apiErr.Code != "")
+			if hasAPIError {
+				apiErr.Status = resp.StatusCode
+				apiErr.Path = path
+			}
 			// Check if retryable (429 or 5xx)
 			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+				retryAfter = parseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
 				lastErr = &httpStatusError{status: resp.StatusCode, body: string(respBytes)}
+				if hasAPIError {
+					lastErr = &apiErr
+				}
 				continue
 			}
 
-			var apiErr types.Error
-			if err := json.Unmarshal(respBytes, &apiErr); err == nil && (apiErr.Message != "" || apiErr.Code != "") {
-				apiErr.Status = resp.StatusCode
-				apiErr.Path = path
+			if hasAPIError {
 				return &apiErr
 			}
 			// Fallback for unknown error formats
@@ -424,4 +436,23 @@ func (c *Client) Delete(ctx context.Context, path string, body interface{}, dest
 // CallWithHeaders executes an HTTP request with custom headers and automatic L2 authentication.
 func (c *Client) CallWithHeaders(ctx context.Context, method, path string, query url.Values, body interface{}, dest interface{}, headers map[string]string) error {
 	return c.Call(ctx, method, path, query, body, dest, headers)
+}
+
+// parseRetryAfter accepts the HTTP delta-seconds and HTTP-date forms.
+func parseRetryAfter(value string, now time.Time) time.Duration {
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil {
+		if seconds <= 0 {
+			return 0
+		}
+		const maxDurationSeconds = int64((1<<63 - 1) / int64(time.Second))
+		if seconds > maxDurationSeconds {
+			return time.Duration(1<<63 - 1)
+		}
+		return time.Duration(seconds) * time.Second
+	}
+	when, err := http.ParseTime(value)
+	if err != nil || !when.After(now) {
+		return 0
+	}
+	return when.Sub(now)
 }
