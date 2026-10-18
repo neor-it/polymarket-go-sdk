@@ -322,7 +322,7 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 
 		// Read response body
 		respBytes, readErr := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if readErr != nil {
 			lastErr = fmt.Errorf("failed to read response body: %w", readErr)
 			continue
@@ -357,6 +357,11 @@ func (c *Client) doCall(ctx context.Context, method, path string, query url.Valu
 			}
 		}
 
+		// Binary endpoints share the same status/error and retry handling above.
+		if raw, ok := dest.(*rawDestination); ok {
+			raw.body = append([]byte(nil), respBytes...)
+			return nil
+		}
 		// Unmarshal success response
 		if dest != nil {
 			if err := json.Unmarshal(respBytes, dest); err != nil {
@@ -385,7 +390,7 @@ func (c *Client) serverTime(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("server time request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

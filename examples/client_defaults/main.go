@@ -60,7 +60,7 @@ func main() {
 	}
 	fmt.Printf("Maker: %s\n", signable.Order.Maker.String())
 	fmt.Printf("SignatureType: %d\n", *signable.Order.SignatureType)
-	fmt.Printf("Salt: %s\n", signable.Order.Salt.Int.String())
+	fmt.Printf("Salt: %s\n", signable.Order.Salt.String())
 
 	if os.Getenv("POLYMARKET_CREATE_API_KEY") == "1" {
 		fmt.Println("\n2. Create API key using default auth nonce")

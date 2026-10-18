@@ -25,6 +25,11 @@ type Transaction struct {
 	To              string `json:"to"`
 	ProxyAddress    string `json:"proxyAddress"`
 	Nonce           string `json:"nonce"`
+	Data            string `json:"data,omitempty"`
+	Value           string `json:"value,omitempty"`
+	Signature       string `json:"signature,omitempty"`
+	Owner           string `json:"owner,omitempty"`
+	Metadata        string `json:"metadata,omitempty"`
 	CreatedAt       string `json:"createdAt"`
 	UpdatedAt       string `json:"updatedAt"`
 }

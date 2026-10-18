@@ -57,7 +57,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
-	defer wsClient.Close()
+	defer func() {
+		if err := wsClient.Close(); err != nil {
+			log.Printf("Close client: %v", err)
+		}
+	}()
 
 	orderCh, err := wsClient.SubscribeUserOrders(ctx, []string{marketID})
 	if err != nil {

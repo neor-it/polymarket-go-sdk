@@ -54,14 +54,14 @@ func validateOrderFinancials(order *clobtypes.Order) error {
 	if strings.ToUpper(order.Side) != "BUY" && strings.ToUpper(order.Side) != "SELL" {
 		return errors.New("order side must be BUY or SELL")
 	}
-	if order.Salt.Int != nil && (order.Salt.Int.Sign() < 0 || order.Salt.Int.BitLen() > orderUint256Bits) {
+	if order.Salt.Int != nil && (order.Salt.Sign() < 0 || order.Salt.BitLen() > orderUint256Bits) {
 		return errors.New("order salt must be a uint256")
 	}
 	if order.Timestamp < 0 {
 		return errors.New("order timestamp must not be negative")
 	}
 
-	if order.TokenID.Int == nil || order.TokenID.Int.Sign() < 0 || order.TokenID.Int.BitLen() > orderUint256Bits {
+	if order.TokenID.Int == nil || order.TokenID.Sign() < 0 || order.TokenID.BitLen() > orderUint256Bits {
 		return errors.New("order token ID must be a uint256")
 	}
 	for _, amount := range []struct {

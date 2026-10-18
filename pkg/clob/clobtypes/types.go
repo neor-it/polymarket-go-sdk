@@ -339,12 +339,19 @@ type (
 		Outcome string `json:"o"`
 	}
 	ClobMarketInfoResponse struct {
-		MinimumTickSize  NumericString         `json:"mts"`
-		MinimumOrderSize NumericString         `json:"mos"`
-		FeeDetails       ClobMarketFeeDetails  `json:"fd"`
-		Tokens           []ClobMarketInfoToken `json:"t"`
-		RFQEnabled       bool                  `json:"rfqe"`
-		NegRisk          *bool                 `json:"neg_risk,omitempty"`
+		GameStartTime      *string               `json:"gst"`
+		Rewards            json.RawMessage       `json:"r"`
+		MakerBaseFee       int64                 `json:"mbf"`
+		TakerBaseFee       int64                 `json:"tbf"`
+		TakerOrderDelay    bool                  `json:"itode,omitempty"`
+		BlockaidCheck      bool                  `json:"ibce"`
+		MinOrderAgeSeconds int                   `json:"oas"`
+		MinimumTickSize    NumericString         `json:"mts"`
+		MinimumOrderSize   NumericString         `json:"mos"`
+		FeeDetails         ClobMarketFeeDetails  `json:"fd"`
+		Tokens             []ClobMarketInfoToken `json:"t"`
+		RFQEnabled         bool                  `json:"rfqe"`
+		NegRisk            *bool                 `json:"neg_risk,omitempty"`
 	}
 	GeoblockResponse struct {
 		Blocked bool   `json:"blocked"`

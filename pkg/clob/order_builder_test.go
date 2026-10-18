@@ -241,9 +241,9 @@ func TestOrderBuilderDefaultsFromClient(t *testing.T) {
 
 	signer := mustSigner(t)
 	funder := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	stub.clientImpl.signatureType = auth.SignatureProxy
-	stub.clientImpl.funder = &funder
-	stub.clientImpl.saltGenerator = func() (*big.Int, error) {
+	stub.signatureType = auth.SignatureProxy
+	stub.funder = &funder
+	stub.saltGenerator = func() (*big.Int, error) {
 		return big.NewInt(42), nil
 	}
 
@@ -262,7 +262,7 @@ func TestOrderBuilderDefaultsFromClient(t *testing.T) {
 	if signable.Order.Maker != funder {
 		t.Fatalf("maker mismatch: got %s want %s", signable.Order.Maker.Hex(), funder.Hex())
 	}
-	if signable.Order.Salt.Int == nil || signable.Order.Salt.Int.Int64() != 42 {
+	if signable.Order.Salt.Int == nil || signable.Order.Salt.Int64() != 42 {
 		t.Fatalf("salt mismatch: got %v", signable.Order.Salt.Int)
 	}
 }
@@ -275,8 +275,8 @@ func TestOrderBuilderPoly1271UsesFunderAsSigner(t *testing.T) {
 	signer := mustSigner(t)
 	funder := common.HexToAddress("0x9c90cad2e22a1E9b4a9aB3F95f7f14d08Ce78ade")
 	poly1271 := auth.SignaturePoly1271
-	stub.clientImpl.signatureType = poly1271
-	stub.clientImpl.funder = &funder
+	stub.signatureType = poly1271
+	stub.funder = &funder
 
 	order, err := NewOrderBuilder(stub, signer).
 		TokenID("123").
@@ -309,8 +309,8 @@ func TestOrderBuilderFunderRequiresSignature(t *testing.T) {
 
 	signer := mustSigner(t)
 	funder := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	stub.clientImpl.signatureType = auth.SignatureEOA
-	stub.clientImpl.funder = &funder
+	stub.signatureType = auth.SignatureEOA
+	stub.funder = &funder
 
 	_, err := NewOrderBuilder(stub, signer).
 		TokenID("123").

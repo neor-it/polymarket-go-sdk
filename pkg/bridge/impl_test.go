@@ -18,6 +18,10 @@ import (
 // mockBackend implements bind.ContractBackend for testing.
 type mockBackend struct{}
 
+func (m *mockBackend) TransactionByHash(ctx context.Context, hash common.Hash) (*ethtypes.Transaction, bool, error) {
+	return nil, false, nil
+}
+
 func (m *mockBackend) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
 	return nil, nil
 }

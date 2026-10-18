@@ -450,7 +450,8 @@ func buildBuilderHeadersRemote(ctx context.Context, remote *BuilderRemoteConfig,
 	if err != nil {
 		return nil, fmt.Errorf("builder request: %w", err)
 	}
-	defer resp.Body.Close()
+	// The response is read-only; closing releases transport resources.
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("builder signer error: status %d", resp.StatusCode)

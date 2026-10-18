@@ -46,7 +46,9 @@ func TestDataV2RetryExhaustionPreservesStructuredError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte(`{"error":"rate limited","code":"rate_limited","retryable":true,"trace_id":"retry-trace","parameter":null}`))
+		if _, err := w.Write([]byte(`{"error":"rate limited","code":"rate_limited","retryable":true,"trace_id":"retry-trace","parameter":null}`)); err != nil {
+			t.Errorf("write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 	var apiError *types.Error

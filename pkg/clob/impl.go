@@ -413,12 +413,9 @@ func (h *healthResponse) UnmarshalJSON(data []byte) error {
 }
 
 func (c *clientImpl) Time(ctx context.Context) (clobtypes.TimeResponse, error) {
-	var ts int64
-	err := c.httpClient.Get(ctx, "/time", nil, &ts)
-	if err != nil {
-		return clobtypes.TimeResponse{}, err
-	}
-	return clobtypes.TimeResponse{Timestamp: ts}, nil
+	var resp clobtypes.TimeResponse
+	err := c.httpClient.Get(ctx, "/time", nil, &resp)
+	return resp, err
 }
 
 func (c *clientImpl) Geoblock(ctx context.Context) (clobtypes.GeoblockResponse, error) {

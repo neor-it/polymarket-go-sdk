@@ -22,7 +22,7 @@ func mockWSServer(t *testing.T, handler func(*websocket.Conn)) *httptest.Server 
 			t.Logf("upgrade failed: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		handler(conn)
 	}))
 }
@@ -56,7 +56,7 @@ func TestClientConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Wait for connection
 	time.Sleep(100 * time.Millisecond)
@@ -99,7 +99,7 @@ func TestClientReadTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Set a short read timeout for testing
 	if impl, ok := client.(*clientImpl); ok {
@@ -115,18 +115,18 @@ func TestClientReadTimeout(t *testing.T) {
 	}
 
 	// 2. Client should timeout (100ms) + reconnect delay (default is 2s, which is too long for this test)
-	// We need to override reconnect delay? 
+	// We need to override reconnect delay?
 	// The clientImpl reads CLOB_WS_RECONNECT_DELAY_MS from env.
 	// But it reads it in NewClient. We can't set it easily now.
 	// However, we can verify that the connection drops.
-	
+
 	time.Sleep(200 * time.Millisecond) // Wait for timeout
 
 	// The client should have closed the connection by now.
 	// We check if it reconnects.
 	// Since default reconnect delay is 2s, we might need to wait > 2s.
 	// That's acceptable for a test.
-	
+
 	select {
 	case <-connections:
 		// Reconnected!

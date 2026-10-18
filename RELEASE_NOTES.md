@@ -1,5 +1,21 @@
 # Release Notes
 
+## Unreleased — upstream compatibility
+
+- Integrate missing capabilities from GoPolymarket SDK commit `15d4d7c` while
+  retaining this module's Data API v2, Protocol V2, CTF, external-signature and
+  wallet lifecycle implementations. Existing published releases are unchanged.
+- Add CLOB market/account endpoints, Gamma typed keyset pages and team lookup,
+  Bridge quote/withdrawal APIs, binary
+  accounting snapshots and official typed Relayer APIs/authentication.
+- Preserve complete uint256 salt precision for all signature types, add per-order
+  timestamp/metadata/builder overrides, update RFQ signing fields and accept
+  compatible server-time and exact numeric earnings representations.
+- Advance go-ethereum to `v1.17.5` and AWS KMS to `v1.61.0`. Keep the Go 1.24
+  language floor and use patched toolchain `go1.26.9` for development/CI.
+- Pin lint tooling, add race/source-compatibility checks and a manual checksummed
+  compatibility-evidence exporter. See the [comparison and upgrade notes](docs/upstream-sync.md).
+
 ## Version 0.3.1 (2026-10-18)
 
 - Reject missing or null Data API token-reference identity fields instead of

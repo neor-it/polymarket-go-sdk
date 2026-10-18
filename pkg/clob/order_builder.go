@@ -37,6 +37,9 @@ type OrderBuilder struct {
 	expiration    *big.Int
 	signatureType *auth.SignatureType
 	postOnly      *bool
+	timestamp     int64
+	metadata      string
+	builderCode   string
 
 	saltGenerator SaltGenerator
 
@@ -93,6 +96,27 @@ func (b *OrderBuilder) ProtocolVersion(protocol types.ProtocolVersion) *OrderBui
 // TokenID sets the token ID to trade.
 func (b *OrderBuilder) TokenID(tokenID string) *OrderBuilder {
 	b.tokenID = tokenID
+	return b
+}
+
+// Timestamp sets the order creation time in milliseconds. Zero keeps the current-time default.
+// Negative values are rejected when the order is built.
+func (b *OrderBuilder) Timestamp(timestamp int64) *OrderBuilder {
+	b.timestamp = timestamp
+	return b
+}
+
+// Metadata sets an exact bytes32 hex value. Empty input keeps zero metadata.
+// Invalid hex or a different length is rejected when the order is built.
+func (b *OrderBuilder) Metadata(metadata string) *OrderBuilder {
+	b.metadata = metadata
+	return b
+}
+
+// Builder sets an exact bytes32 attribution code for this order.
+// Empty or zero input retains the configured client builder attribution.
+func (b *OrderBuilder) Builder(builder string) *OrderBuilder {
+	b.builderCode = builder
 	return b
 }
 
@@ -249,6 +273,9 @@ func (b *OrderBuilder) BuildMarket() (*clobtypes.SignableOrder, error) {
 
 // BuildMarketWithContext constructs a market order and returns it with order type metadata.
 func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.SignableOrder, error) {
+	if b.timestamp < 0 {
+		return nil, fmt.Errorf("order timestamp must not be negative")
+	}
 	if b.signer != nil {
 		if _, err := SigningConfiguration(b.signer.ChainID().Int64(), b.protocolVersion, false); err != nil {
 			return nil, err
@@ -405,7 +432,7 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 		Expiration:      types.U256{Int: big.NewInt(0)},
 		Side:            side,
 		SignatureType:   &sigType,
-		Timestamp:       time.Now().UnixMilli(),
+		Timestamp:       b.orderTimestamp(),
 		Metadata:        metadata,
 		Builder:         builder,
 		NegRisk:         &negRisk,
@@ -418,6 +445,9 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 }
 
 func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error) {
+	if b.timestamp < 0 {
+		return nil, fmt.Errorf("order timestamp must not be negative")
+	}
 	if b.signer != nil {
 		if _, err := SigningConfiguration(b.signer.ChainID().Int64(), b.protocolVersion, false); err != nil {
 			return nil, err
@@ -544,7 +574,7 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 		Expiration:      types.U256{Int: expiration},
 		Side:            side,
 		SignatureType:   &sigType,
-		Timestamp:       time.Now().UnixMilli(),
+		Timestamp:       b.orderTimestamp(),
 		Metadata:        metadata,
 		Builder:         builder,
 		NegRisk:         &negRisk,
@@ -552,12 +582,30 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 }
 
 func (b *OrderBuilder) v2MetadataAndBuilder() (common.Hash, common.Hash, error) {
+	metadata, err := parseBuilderCodeString(b.metadata)
+	if err != nil {
+		return common.Hash{}, common.Hash{}, fmt.Errorf("order metadata: %w", err)
+	}
+	builder, err := parseBuilderCodeString(b.builderCode)
+	if err != nil {
+		return common.Hash{}, common.Hash{}, fmt.Errorf("order builder: %w", err)
+	}
+	if builder != (common.Hash{}) {
+		return metadata, builder, nil
+	}
 	if impl, ok := b.client.(*clientImpl); ok {
 		builder, err := impl.builderV2Field()
 		if err != nil {
 			return common.Hash{}, common.Hash{}, err
 		}
-		return common.Hash{}, builder, nil
+		return metadata, builder, nil
 	}
-	return common.Hash{}, common.Hash{}, nil
+	return metadata, common.Hash{}, nil
+}
+
+func (b *OrderBuilder) orderTimestamp() int64 {
+	if b.timestamp != 0 {
+		return b.timestamp
+	}
+	return time.Now().UnixMilli()
 }

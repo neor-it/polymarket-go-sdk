@@ -12,7 +12,11 @@ import (
 func TestEndpointEnvelopeCannotInventMissingValue(t *testing.T) {
 	for _, payload := range []string{`{}`, `null`, `{"data":null}`, `{"data":{}}`} {
 		t.Run(payload, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(payload)) }))
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := w.Write([]byte(payload)); err != nil {
+					t.Errorf("write test response: %v", err)
+				}
+			}))
 			defer server.Close()
 			_, err := NewClient(transport.NewClient(server.Client(), server.URL)).Value(context.Background(), &ValueRequest{})
 			if err == nil {
@@ -32,7 +36,11 @@ func TestEndpointPageRequiresArrayAndCompletePagination(t *testing.T) {
 		`{"data":[],"pagination":{"limit":2,"offset":0,"has_more":false,"next_cursor":"unexpected"}}`,
 	} {
 		t.Run(payload, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(payload)) }))
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := w.Write([]byte(payload)); err != nil {
+					t.Errorf("write test response: %v", err)
+				}
+			}))
 			defer server.Close()
 			_, err := NewClient(transport.NewClient(server.Client(), server.URL)).Trades(context.Background(), &TradesRequest{})
 			if err == nil {
@@ -44,7 +52,11 @@ func TestEndpointPageRequiresArrayAndCompletePagination(t *testing.T) {
 
 func TestNullableEnvelopeNeedsExplicitData(t *testing.T) {
 	for _, payload := range []string{`{}`, `null`, `{"data":null}`} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(payload)) }))
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, err := w.Write([]byte(payload)); err != nil {
+				t.Errorf("write test response: %v", err)
+			}
+		}))
 		client := NewClient(transport.NewClient(server.Client(), server.URL))
 		stats, err := client.UserStats(context.Background(), &UserStatsRequest{})
 		server.Close()

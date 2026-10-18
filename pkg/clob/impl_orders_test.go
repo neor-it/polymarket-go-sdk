@@ -424,7 +424,7 @@ func TestSignOrderDefaults(t *testing.T) {
 	if signed.Order.Maker != funder {
 		t.Fatalf("maker mismatch: got %s want %s", signed.Order.Maker.Hex(), funder.Hex())
 	}
-	if signed.Order.Salt.Int == nil || signed.Order.Salt.Int.Int64() != 7 {
+	if signed.Order.Salt.Int == nil || signed.Order.Salt.Int64() != 7 {
 		t.Fatalf("salt mismatch: got %v", signed.Order.Salt.Int)
 	}
 	if signed.Order.Timestamp == 0 {

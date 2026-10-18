@@ -34,9 +34,13 @@ func TestPositionsCursorLifecycleAndExactEconomics(t *testing.T) {
 		}
 		switch r.URL.Query().Get("cursor") {
 		case "":
-			w.Write([]byte(`{"data":[{"token_id":"` + tokenID + `","avg_price":0.5,"current_price":0,"current_value":0,"percent_pnl":0,"percent_realized_pnl":0,"realized_pnl":0,"total_pnl":0,"unrealized_pnl":0,"current_size":0.000001,"entry_cost_usdc":9007199254.740993,"entry_fees_usdc":0.000001,"total_cost_usdc":9007199254.740994,"total_size":3,"status":"CLOSED"}],"pagination":{"has_more":true,"limit":1,"offset":0,"next_cursor":"opaque+/="}}`))
+			if _, err := w.Write([]byte(`{"data":[{"token_id":"` + tokenID + `","avg_price":0.5,"current_price":0,"current_value":0,"percent_pnl":0,"percent_realized_pnl":0,"realized_pnl":0,"total_pnl":0,"unrealized_pnl":0,"current_size":0.000001,"entry_cost_usdc":9007199254.740993,"entry_fees_usdc":0.000001,"total_cost_usdc":9007199254.740994,"total_size":3,"status":"CLOSED"}],"pagination":{"has_more":true,"limit":1,"offset":0,"next_cursor":"opaque+/="}}`)); err != nil {
+				t.Errorf("write test response: %v", err)
+			}
 		case "opaque+/=":
-			w.Write([]byte(`{"data":[],"pagination":{"has_more":false,"limit":1,"offset":1,"next_cursor":null}}`))
+			if _, err := w.Write([]byte(`{"data":[],"pagination":{"has_more":false,"limit":1,"offset":1,"next_cursor":null}}`)); err != nil {
+				t.Errorf("write test response: %v", err)
+			}
 		default:
 			t.Errorf("unexpected cursor")
 		}
@@ -116,7 +120,9 @@ func TestAllV2RoutesAndNullUserStats(t *testing.T) {
 				if r.URL.Path != test.path {
 					t.Errorf("path %s", r.URL.Path)
 				}
-				w.Write([]byte(test.body))
+				if _, err := w.Write([]byte(test.body)); err != nil {
+					t.Errorf("write test response: %v", err)
+				}
 			}))
 			defer server.Close()
 			if err := test.call(NewClient(transport.NewClient(server.Client(), server.URL))); err != nil {
@@ -151,7 +157,9 @@ func TestV2ValidationAndCanonicalQueries(t *testing.T) {
 		if q.Get("taker_only") != "false" || q.Get("filter_type") != "CASH" || q.Get("filter_amount") != "0.000001" || q.Get("start") != "1" || q.Get("end") != "2" || q.Get("side") != "BUY" {
 			t.Errorf("query %s", r.URL.RawQuery)
 		}
-		w.Write([]byte(`{"data":[],"pagination":{"has_more":false,"offset":0,"limit":2,"next_cursor":null}}`))
+		if _, err := w.Write([]byte(`{"data":[],"pagination":{"has_more":false,"offset":0,"limit":2,"next_cursor":null}}`)); err != nil {
+			t.Errorf("write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 	client := NewClient(transport.NewClient(server.Client(), server.URL))
@@ -186,7 +194,9 @@ func TestV2ValidationAndCanonicalQueries(t *testing.T) {
 func TestV2ErrorsPreserveContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":"cursor does not match query","code":"invalid_request","retryable":false,"trace_id":"trace-123","parameter":"cursor"}`))
+		if _, err := w.Write([]byte(`{"error":"cursor does not match query","code":"invalid_request","retryable":false,"trace_id":"trace-123","parameter":"cursor"}`)); err != nil {
+			t.Errorf("write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 	_, err := NewClient(transport.NewClient(server.Client(), server.URL)).Positions(context.Background(), &PositionsRequest{Cursor: ptr("bad")})
@@ -205,7 +215,9 @@ func TestLeaderboardUserHasObjectOrNullShape(t *testing.T) {
 		if !r.URL.Query().Has("user") {
 			t.Error("user missing")
 		}
-		w.Write([]byte(`{"data":{"user_id":"0x123","rank_pnl":null,"rank_volume":2,"pnl":0.000001,"volume":4}}`))
+		if _, err := w.Write([]byte(`{"data":{"user_id":"0x123","rank_pnl":null,"rank_volume":2,"pnl":0.000001,"volume":4}}`)); err != nil {
+			t.Errorf("write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 	response, err := NewClient(transport.NewClient(server.Client(), server.URL)).LeaderboardUser(context.Background(), &LeaderboardUserRequest{User: common.HexToAddress("0x123")})

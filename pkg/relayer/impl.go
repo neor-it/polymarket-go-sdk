@@ -20,11 +20,12 @@ var factoryByChain = map[int64]common.Address{
 }
 
 type clientImpl struct {
-	httpClient *transport.Client
-	signer     auth.Signer
-	chainID    int64
-	factory    common.Address
-	builderCfg *auth.BuilderConfig
+	httpClient         *transport.Client
+	signer             auth.Signer
+	chainID            int64
+	factory            common.Address
+	builderCfg         *auth.BuilderConfig
+	relayerCredentials *RelayerCredentials
 }
 
 func (c *clientImpl) WithSigner(signer auth.Signer) Client {
@@ -48,6 +49,9 @@ func (c *clientImpl) WithBuilderConfig(cfg *auth.BuilderConfig) Client {
 // postWithBuilderAuth serializes body, optionally computes POLY_BUILDER_* HMAC headers,
 // and calls POST path.
 func (c *clientImpl) postWithBuilderAuth(ctx context.Context, path string, body interface{}, dest interface{}) error {
+	if c.relayerCredentials != nil {
+		return c.callAuthenticated(ctx, "POST", path, body, dest, false)
+	}
 	if c.builderCfg == nil || !c.builderCfg.UseHMACBuilderHeaders() {
 		return c.httpClient.Post(ctx, path, body, dest)
 	}

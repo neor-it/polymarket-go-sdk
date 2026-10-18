@@ -20,7 +20,7 @@ func TestRaceCondition_ConcurrentGetConn(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		time.Sleep(100 * time.Millisecond)
 	}))
 	defer server.Close()
@@ -31,7 +31,7 @@ func TestRaceCondition_ConcurrentGetConn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	impl := client.(*clientImpl)
 
@@ -56,7 +56,7 @@ func TestRaceCondition_ConcurrentCloseAndRead(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Send periodic messages
 		ticker := time.NewTicker(10 * time.Millisecond)
@@ -102,7 +102,7 @@ func TestRaceCondition_ConcurrentCloseAndRead(t *testing.T) {
 	}()
 
 	wg.Wait()
-	client.Close()
+	_ = client.Close()
 }
 
 // TestRaceCondition_ConcurrentWriteJSON tests concurrent writes to WebSocket
@@ -113,7 +113,7 @@ func TestRaceCondition_ConcurrentWriteJSON(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Read and discard messages
 		for {
@@ -131,7 +131,7 @@ func TestRaceCondition_ConcurrentWriteJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	impl := client.(*clientImpl)
 
@@ -156,7 +156,7 @@ func TestRaceCondition_ConcurrentSubscriptionAccess(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Send periodic events
 		ticker := time.NewTicker(5 * time.Millisecond)
@@ -174,7 +174,7 @@ func TestRaceCondition_ConcurrentSubscriptionAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	var wg sync.WaitGroup
@@ -189,7 +189,7 @@ func TestRaceCondition_ConcurrentSubscriptionAccess(t *testing.T) {
 				return
 			}
 			time.Sleep(20 * time.Millisecond)
-			stream.Close()
+			_ = stream.Close()
 		}(i)
 	}
 
@@ -204,7 +204,7 @@ func TestRaceCondition_ConcurrentStateAccess(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		time.Sleep(100 * time.Millisecond)
 	}))
 	defer server.Close()
@@ -215,7 +215,7 @@ func TestRaceCondition_ConcurrentStateAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	impl := client.(*clientImpl)
 
@@ -256,7 +256,7 @@ func TestRaceCondition_ConcurrentRefCounting(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Read and discard
 		for {
@@ -274,7 +274,7 @@ func TestRaceCondition_ConcurrentRefCounting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	impl := client.(*clientImpl)
 

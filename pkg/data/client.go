@@ -4,6 +4,8 @@ import "context"
 
 // Client defines all supported Data API v2 reads.
 type Client interface {
+	// AccountingSnapshot downloads the retained v1 ZIP endpoint for an explicit wallet.
+	AccountingSnapshot(context.Context, *AccountingSnapshotRequest) ([]byte, error)
 	// LeaderboardUser reads one user, whose response is an object or null.
 	// LeaderboardUser reads the corresponding typed Data API v2 response.
 	LeaderboardUser(ctx context.Context, req *LeaderboardUserRequest) (LeaderboardUserResponse, error)

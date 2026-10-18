@@ -15,15 +15,15 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: false
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
+          version: v2.12.2
           args: --timeout=5m
 
   test:
@@ -32,17 +32,19 @@ jobs:
     env:
       CGO_ENABLED: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
       - name: Install dependencies
         run: go mod download
+      - name: Check compatibility evidence failure handling
+        run: python3 scripts/compatibility_evidence_test.py -v
       - name: Build
         run: go build -v ./...
       - name: Test
-        run: go test -v -coverprofile=coverage.out ./pkg/...
+        run: go test -v -coverprofile=coverage.out ./...
 
       - name: Check Coverage
         run: |
@@ -52,11 +54,37 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
       - name: Govulncheck (advisory)
         continue-on-error: true
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  compatibility:
+    name: Go 1.24 Source Compatibility
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.13'
+          cache: true
+      - name: Compile minimum-language packages and examples
+        run: go test -run '^$' ./...
+
+  race:
+    name: Signing and Contract Race Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Race-check protocol boundaries
+        run: go test -race -count=1 ./pkg/auth/... ./pkg/clob/... ./pkg/relayer ./pkg/gamma ./pkg/data ./pkg/combos ./pkg/bridge ./pkg/positions ./pkg/transport

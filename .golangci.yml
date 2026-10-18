@@ -1,0 +1,6 @@
+# Keep lint behavior reproducible with the version pinned in Go CI.
+version: "2"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

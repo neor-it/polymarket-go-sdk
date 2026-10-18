@@ -179,7 +179,9 @@ func TestV2AllowanceRefreshUsesExplicitLedgerAndMakerSignature(t *testing.T) {
 		if r.URL.Path != "/balance-allowance" && r.URL.Path != "/balance-allowance/update" {
 			t.Fatalf("wrong balance path %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"balance":"1000000","allowances":{"` + positions.ExchangeV3Address + `":"1000000","` + exchangeV2Address + `":"0"}}`))
+		if _, err := w.Write([]byte(`{"balance":"1000000","allowances":{"` + positions.ExchangeV3Address + `":"1000000","` + exchangeV2Address + `":"0"}}`)); err != nil {
+			t.Errorf("write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 	client := NewClient(transport.NewClient(server.Client(), server.URL))

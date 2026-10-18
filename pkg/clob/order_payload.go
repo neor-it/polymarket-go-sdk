@@ -80,20 +80,9 @@ func orderWithSignature(order *clobtypes.SignedOrder) (map[string]interface{}, e
 		return nil, fmt.Errorf("invalid order side %q", order.Order.Side)
 	}
 
-	var salt interface{}
-	if sigType == 3 {
-		// POLY_1271: serialize salt as json.Number to preserve exact numeric string.
-		if order.Order.Salt.Int != nil {
-			salt = json.Number(order.Order.Salt.Int.String())
-		} else {
-			salt = json.Number("0")
-		}
-	} else {
-		var err error
-		salt, err = saltToJSON(order.Order.Salt)
-		if err != nil {
-			return nil, err
-		}
+	salt, err := saltToJSON(order.Order.Salt)
+	if err != nil {
+		return nil, err
 	}
 
 	return map[string]interface{}{
@@ -117,24 +106,21 @@ func u256String(value types.U256) string {
 	if value.Int == nil {
 		return "0"
 	}
-	return value.Int.String()
+	return value.String()
 }
 
 func decimalString(value types.Decimal) string {
 	return value.String()
 }
 
-func saltToJSON(value types.U256) (interface{}, error) {
+func saltToJSON(value types.U256) (json.Number, error) {
 	if value.Int == nil {
-		return uint64(0), nil
+		return json.Number("0"), nil
 	}
-	if value.Int.Sign() < 0 {
-		return nil, fmt.Errorf("salt must be non-negative")
+	if value.Sign() < 0 || value.BitLen() > orderUint256Bits {
+		return "", fmt.Errorf("order salt must be a uint256")
 	}
-	if value.Int.BitLen() > 53 {
-		return nil, fmt.Errorf("salt is too large (max 53 bits)")
-	}
-	return value.Int.Uint64(), nil
+	return json.Number(value.String()), nil
 }
 
 func normalizeOrderType(orderType clobtypes.OrderType, fallback clobtypes.OrderType) clobtypes.OrderType {

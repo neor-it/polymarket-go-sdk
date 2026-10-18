@@ -195,7 +195,7 @@ func TestSubscriptionPanic_DispatchToClosedSubscription(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Send some events
 		for i := 0; i < 10; i++ {
@@ -211,7 +211,7 @@ func TestSubscriptionPanic_DispatchToClosedSubscription(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 
@@ -222,7 +222,7 @@ func TestSubscriptionPanic_DispatchToClosedSubscription(t *testing.T) {
 	}
 
 	// Close subscription immediately
-	stream.Close()
+	_ = stream.Close()
 
 	// Wait for events to be dispatched to closed subscription
 	time.Sleep(200 * time.Millisecond)
