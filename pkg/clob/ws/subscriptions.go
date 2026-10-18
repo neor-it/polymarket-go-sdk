@@ -277,6 +277,25 @@ func subscribeMarketStream[T any](c *clientImpl, ctx context.Context, assetIDs [
 		return nil, errors.New("assetIDs required")
 	}
 	newAssets := c.addMarketRefs(assetIDs, custom)
+
+	// Register the receiver before dialing or writing: the peer can reply immediately.
+	entry := newSubscriptionEntry[T](c, ChannelMarket, eventType, assetIDs, nil)
+	c.subMu.Lock()
+	subs[entry.id] = entry
+	c.subMu.Unlock()
+	subscribed := false
+	defer func() {
+		if subscribed {
+			return
+		}
+		// Failed setup owns only this entry and its reference increments. Avoid another
+		// network write on the failing connection and leave sibling streams intact.
+		entry.close()
+		c.subMu.Lock()
+		delete(subs, entry.id)
+		c.subMu.Unlock()
+		c.removeMarketRefs(assetIDs)
+	}()
 	if err := c.ensureConn(ChannelMarket); err != nil {
 		return nil, err
 	}
@@ -290,11 +309,6 @@ func subscribeMarketStream[T any](c *clientImpl, ctx context.Context, assetIDs [
 		}
 	}
 
-	entry := newSubscriptionEntry[T](c, ChannelMarket, eventType, assetIDs, nil)
-	c.subMu.Lock()
-	subs[entry.id] = entry
-	c.subMu.Unlock()
-
 	stream := &Stream[T]{
 		C:   entry.ch,
 		Err: entry.errCh,
@@ -303,6 +317,7 @@ func subscribeMarketStream[T any](c *clientImpl, ctx context.Context, assetIDs [
 			return nil
 		},
 	}
+	subscribed = true
 	bindContext(ctx, stream)
 	return stream, nil
 }
@@ -316,6 +331,25 @@ func subscribeUserStream[T any](c *clientImpl, ctx context.Context, markets []st
 		return nil, errors.New("user subscription requires API key credentials")
 	}
 	newMarkets := c.addUserRefs(markets, auth)
+
+	// Register the receiver before dialing or writing: the peer can reply immediately.
+	entry := newSubscriptionEntry[T](c, ChannelUser, eventType, nil, markets)
+	c.subMu.Lock()
+	subs[entry.id] = entry
+	c.subMu.Unlock()
+	subscribed := false
+	defer func() {
+		if subscribed {
+			return
+		}
+		// Failed setup owns only this entry and its reference increments. Avoid another
+		// network write on the failing connection and leave sibling streams intact.
+		entry.close()
+		c.subMu.Lock()
+		delete(subs, entry.id)
+		c.subMu.Unlock()
+		c.removeUserRefs(markets)
+	}()
 	if err := c.ensureConn(ChannelUser); err != nil {
 		return nil, err
 	}
@@ -327,11 +361,6 @@ func subscribeUserStream[T any](c *clientImpl, ctx context.Context, markets []st
 		}
 	}
 
-	entry := newSubscriptionEntry[T](c, ChannelUser, eventType, nil, markets)
-	c.subMu.Lock()
-	subs[entry.id] = entry
-	c.subMu.Unlock()
-
 	stream := &Stream[T]{
 		C:   entry.ch,
 		Err: entry.errCh,
@@ -340,6 +369,7 @@ func subscribeUserStream[T any](c *clientImpl, ctx context.Context, markets []st
 			return nil
 		},
 	}
+	subscribed = true
 	bindContext(ctx, stream)
 	return stream, nil
 }

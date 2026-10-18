@@ -11,6 +11,8 @@
 - Preserve complete uint256 salt precision for all signature types, add per-order
   timestamp/metadata/builder overrides, update RFQ signing fields and accept
   compatible server-time and exact numeric earnings representations.
+- Fix an inherited WebSocket subscription race that could drop immediate market
+  or user events; failed setup removes the pending consumer and reference counts.
 - Advance go-ethereum to `v1.17.5` and AWS KMS to `v1.61.0`. Keep the Go 1.24
   language floor and use patched toolchain `go1.26.9` for development/CI.
 - Pin lint tooling, add race/source-compatibility checks and a manual checksummed

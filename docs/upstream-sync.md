@@ -20,6 +20,7 @@ capabilities, not a replacement of our protocol implementation.
 | Relayer | Typed generic submission, transaction history, nonce, relay payload, deployment and API-key reads with Relayer-specific credentials |
 | Signing | Exact uint256 salt JSON numbers for every signature type; per-order timestamp, metadata and builder overrides |
 | Wire compatibility | Single-request server-time decoding, exact number/string earnings decoding and current RFQ signing fields |
+| WebSocket lifecycle | Register market/user consumers before connection/submission and remove failed subscription state |
 
 The existing `GetClobMarketInfo` API is extended rather than duplicated.
 Missing signer addresses on supported ordinary orders are populated from the
@@ -81,6 +82,11 @@ POLY_1271 signatures, address-only signers, KMS digest signing, Deposit Wallet
 derivation/batches and builder-code attribution remain supported. ClobAuth and
 Deposit Wallet domains are unchanged. See the
 [Protocol V2 guide](protocol-v2-migration.md).
+
+Linux CI exposed an inherited WebSocket ordering race: an immediate server reply
+could arrive before the local stream was registered. Market and user streams now
+register before connecting/submitting and remove local state after setup failure.
+Regression checks cover immediate replies, failed setup and shared subscriptions.
 
 Transport retains `Retry-After`, cancellation and structured errors after
 exhausted retries. No balances are automatically converted and no transaction

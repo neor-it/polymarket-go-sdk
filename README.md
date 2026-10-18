@@ -390,6 +390,8 @@ The unreleased upstream integration adds CLOB market/account APIs, Gamma keyset
 pages, Bridge quote/withdrawal APIs, binary accounting snapshots and generic typed
 Relayer operations. The existing `Combos` RFQ client remains available. Signing supports
 exact uint256 salts and per-order timestamp, metadata and builder overrides.
+WebSocket streams register before setup so immediate replies are delivered, with
+failed setup cleaning up subscription state.
 
 See the [upstream comparison and upgrade notes](docs/upstream-sync.md) for the
 complete capability map, corrected wire contracts, retained V1/V2 behavior and

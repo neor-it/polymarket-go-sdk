@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/neor-it/polymarket-go-sdk/pkg/auth"
 )
 
 var upgrader = websocket.Upgrader{
@@ -30,8 +31,16 @@ func mockWSServer(t *testing.T, handler func(*websocket.Conn)) *httptest.Server 
 func TestClientConnection(t *testing.T) {
 	// Simple test: connect and receive one message
 	s := mockWSServer(t, func(c *websocket.Conn) {
-		// Wait for subscription request
-		_, _, _ = c.ReadMessage()
+		// The peer must receive the actual asset subscription before emitting an event.
+		var subscription SubscriptionRequest
+		if err := c.ReadJSON(&subscription); err != nil {
+			t.Errorf("read subscription: %v", err)
+			return
+		}
+		if subscription.Type != ChannelMarket || subscription.Operation != OperationSubscribe || len(subscription.AssetIDs) != 1 || subscription.AssetIDs[0] != "123" {
+			t.Errorf("unexpected subscription: %+v", subscription)
+			return
+		}
 
 		// Send a dummy event with proper price_changes structure
 		err := c.WriteJSON(map[string]interface{}{
@@ -44,8 +53,12 @@ func TestClientConnection(t *testing.T) {
 		if err != nil {
 			return
 		}
-		// Keep alive
-		time.Sleep(1 * time.Second)
+		// Keep the socket open until client cleanup, without timing assumptions.
+		for {
+			if _, _, err := c.ReadMessage(); err != nil {
+				return
+			}
+		}
 	})
 	defer s.Close()
 
@@ -58,8 +71,7 @@ func TestClientConnection(t *testing.T) {
 	}
 	defer func() { _ = client.Close() }()
 
-	// Wait for connection
-	time.Sleep(100 * time.Millisecond)
+	// NewClient establishes the connection before returning.
 	if client.ConnectionState(ChannelMarket) != ConnectionConnected {
 		t.Errorf("expected connected, got %v", client.ConnectionState(ChannelMarket))
 	}
@@ -132,5 +144,99 @@ func TestClientReadTimeout(t *testing.T) {
 		// Reconnected!
 	case <-time.After(3 * time.Second):
 		t.Fatal("timeout waiting for reconnection")
+	}
+}
+
+func TestClientStreamRegisteredBeforeConnection(t *testing.T) {
+	const assetID = "123"
+	const marketID = "m1"
+	const eventID = "immediate-order"
+	const eventTimeout = time.Second
+	for _, channel := range []Channel{ChannelMarket, ChannelUser} {
+		t.Run(string(channel), func(t *testing.T) {
+			var client *clientImpl
+			ready := make(chan struct{})
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				<-ready
+				client.subMu.Lock()
+				registered := len(client.priceSubs) == 1 && client.marketRefs[assetID] == 1
+				if channel == ChannelUser {
+					registered = len(client.orderSubs) == 1 && client.userRefs[marketID] == 1
+				}
+				client.subMu.Unlock()
+				if !registered {
+					t.Error("stream and reference must be registered before connection can deliver its first event")
+				}
+				conn, err := upgrader.Upgrade(w, r, nil)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				defer func() { _ = conn.Close() }()
+				if err := conn.SetReadDeadline(time.Now().Add(eventTimeout)); err != nil {
+					t.Error(err)
+					return
+				}
+				var request SubscriptionRequest
+				if err := conn.ReadJSON(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				if channel == ChannelMarket {
+					if request.Type != ChannelMarket || len(request.AssetIDs) != 1 || request.AssetIDs[0] != assetID {
+						t.Errorf("wrong market subscription: %+v", request)
+					}
+					err = conn.WriteJSON(map[string]interface{}{"event_type": "price", "price_changes": []map[string]string{{"asset_id": assetID, "price": "0.5"}}})
+				} else {
+					if len(request.Markets) != 1 || request.Markets[0] != marketID || request.Auth == nil {
+						t.Errorf("wrong authenticated user subscription: %+v", request)
+					}
+					err = conn.WriteJSON(map[string]string{"event_type": "order", "id": eventID, "market": marketID})
+				}
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				for {
+					if _, _, err := conn.ReadMessage(); err != nil {
+						return
+					}
+				}
+			}))
+			defer server.Close()
+			cfg := DefaultClientConfig()
+			cfg.DisablePing = true
+			cfg.Reconnect = false
+			client = newClientImpl("ws"+strings.TrimPrefix(server.URL, "http"), nil, &auth.APIKey{Key: "test-key", Secret: "test-secret", Passphrase: "test-pass"}, cfg)
+			close(ready)
+			defer func() { _ = client.Close() }()
+			if channel == ChannelMarket {
+				stream, err := client.SubscribePricesStream(context.Background(), []string{assetID})
+				if err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case event := <-stream.C:
+					if event.AssetID != assetID {
+						t.Errorf("wrong immediate price: %+v", event)
+					}
+				case <-time.After(eventTimeout):
+					t.Error("timeout waiting for immediate market event")
+				}
+			} else {
+				stream, err := client.SubscribeUserOrdersStream(context.Background(), []string{marketID})
+				if err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case event := <-stream.C:
+					if event.ID != eventID {
+						t.Errorf("wrong immediate order: %+v", event)
+					}
+				case <-time.After(eventTimeout):
+					t.Error("timeout waiting for immediate user event")
+				}
+			}
+		})
 	}
 }
