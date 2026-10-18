@@ -1,5 +1,13 @@
 # Release Notes
 
+## Version 0.3.1 (2026-10-18)
+
+- Reject missing or null Data API token-reference identity fields instead of
+  interpreting unavailable `outcome_index` as outcome zero. The published int32
+  range is enforced; explicit zero, unresolved `false` and nullable enrichment
+  fields remain supported. Consumers can safely distinguish unavailable
+  provenance from a verified YES slot.
+
 ## Version 0.3.0 (2026-10-18)
 
 ### Explicit Protocol V2 support

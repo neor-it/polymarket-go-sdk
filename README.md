@@ -375,7 +375,9 @@ Distributed under the Apache License 2.0. See `LICENSE` for more information.
 The SDK reads the cursor-paginated Data API v2. See the
 [SDK v0.2.0 migration guide](docs/data-api-v2-migration.md) for breaking Go API
 changes, exact position economics, Combo feed changes and Gamma protocol
-selection. Data API v1 retires on October 24, 2026.
+selection. Data API v1 retires on October 24, 2026. From v0.3.1, token-reference
+identity fields must be present and non-null; an unavailable outcome slot cannot
+be mistaken for outcome zero.
 
 The explicit V1/V2 signing and contract APIs are described in the
 [SDK v0.3.0 Protocol V2 guide](docs/protocol-v2-migration.md). Enabling the SDK

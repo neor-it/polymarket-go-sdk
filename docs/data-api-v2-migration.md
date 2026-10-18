@@ -96,3 +96,13 @@ selectors using `gamma.ConditionHash(gamma.ProtocolV2, id)`: native bytes31 IDs
 are **right-padded** with zero; padded bytes32 IDs are checked for a zero final
 byte. Calling `common.HexToHash` on a native bytes31 ID left-pads it and selects
 a different condition. `ConditionHash` also strictly validates V1 bytes32 IDs.
+
+## Token-reference provenance
+
+From v0.3.1, `/v2/tokens` rows require the published non-null `token_id`,
+`condition_id`, `module`, `outcome_index` and `resolved` identity facts. Missing
+or null outcome slots are errors, never inferred as zero. The outcome slot uses
+the published int32 range; explicit zero and unresolved `false` remain valid.
+Nullable enrichment, including outcome labels and final prices, remains nullable.
+Applications must still verify the expected token, ledger, condition and supported
+outcome before using this reference to recover a historical financial intent.
