@@ -68,6 +68,9 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 	if order == nil {
 		return nil, fmt.Errorf("order is required")
 	}
+	if err := validateOrderFinancials(order); err != nil {
+		return nil, err
+	}
 
 	sigTypeVal := int(auth.SignatureEOA)
 	if order.SignatureType != nil {
@@ -108,6 +111,11 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		}
 		c.cache.mu.RUnlock()
 	}
+	config, err := SigningConfiguration(signer.ChainID().Int64(), order.ProtocolVersion, negRisk)
+	if err != nil {
+		return nil, err
+	}
+	order.ProtocolVersion = config.ProtocolVersion
 	if c != nil && order.Builder == (common.Hash{}) {
 		builder, err := c.builderV2Field()
 		if err != nil {
@@ -138,6 +146,9 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		order.Salt = types.U256{Int: salt}
 	}
 
+	if err := validateOrderFinancials(order); err != nil {
+		return nil, err
+	}
 	// POLY_1271: sign with the ERC-7739 wrapped scheme and return early.
 	// Both maker and signer on the order must be the deposit wallet address.
 	if sigTypeVal == int(auth.SignaturePoly1271) {
@@ -161,9 +172,9 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 
 	domain := &apitypes.TypedDataDomain{
 		Name:              "Polymarket CTF Exchange",
-		Version:           "2",
+		Version:           config.DomainVersion,
 		ChainId:           (*math.HexOrDecimal256)(signer.ChainID()),
-		VerifyingContract: verifyingContractV2(negRisk),
+		VerifyingContract: config.Exchange.Hex(),
 	}
 
 	typesDef := apitypes.Types{

@@ -283,6 +283,8 @@ type (
 const (
 	AssetTypeCollateral  AssetType = "COLLATERAL"
 	AssetTypeConditional AssetType = "CONDITIONAL"
+	// AssetTypeConditionalV2 selects PositionManager holdings rather than CTF.
+	AssetTypeConditionalV2 AssetType = "CONDITIONAL-V2"
 )
 
 // Response types.
@@ -507,14 +509,16 @@ type (
 
 	// Order is the CTF Exchange order for CLOB v2.
 	Order struct {
-		Salt          types.U256    `json:"salt"`
-		Signer        types.Address `json:"signer"`
-		Maker         types.Address `json:"maker"`
-		TokenID       types.U256    `json:"token_id"`
-		MakerAmount   types.Decimal `json:"maker_amount"`
-		TakerAmount   types.Decimal `json:"taker_amount"`
-		Side          string        `json:"side"`                     // BUY/SELL
-		SignatureType *int          `json:"signature_type,omitempty"` // 0=EOA, 1=Proxy, 2=Safe
+		// ProtocolVersion selects the signing domain; persisted operation snapshots must store it separately.
+		ProtocolVersion types.ProtocolVersion `json:"-"`
+		Salt            types.U256            `json:"salt"`
+		Signer          types.Address         `json:"signer"`
+		Maker           types.Address         `json:"maker"`
+		TokenID         types.U256            `json:"token_id"`
+		MakerAmount     types.Decimal         `json:"maker_amount"`
+		TakerAmount     types.Decimal         `json:"taker_amount"`
+		Side            string                `json:"side"`                     // BUY/SELL
+		SignatureType   *int                  `json:"signature_type,omitempty"` // 0=EOA, 1=Proxy, 2=Safe
 		// Expiration is a JSON-only CLOB field for GTD orders and is not part of EIP-712 v2.
 		Expiration types.U256 `json:"-"`
 		// Timestamp is Unix time in milliseconds and replaces the v1 nonce for uniqueness.

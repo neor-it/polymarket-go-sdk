@@ -50,7 +50,11 @@ func signPoly1271Order(signer auth.Signer, order *clobtypes.Order) ([]byte, erro
 	}
 
 	// Exchange domain separator for the CTF Exchange V2.
-	domainSep := poly1271ExchangeDomainSeparator(signer.ChainID(), verifyingContractV2(negRisk))
+	config, err := SigningConfiguration(signer.ChainID().Int64(), order.ProtocolVersion, negRisk)
+	if err != nil {
+		return nil, err
+	}
+	domainSep := exchangeDomainSeparator(signer.ChainID(), config.Exchange.Hex(), config.DomainVersion)
 
 	// Order struct hash, used as the ERC-7739 "contents" hash.
 	sideInt := 0
@@ -84,16 +88,15 @@ func signPoly1271Order(signer auth.Signer, order *clobtypes.Order) ([]byte, erro
 	return wrapPoly1271Signature(sig, domainSep[:], contentsHash[:], orderTypeStr), nil
 }
 
-// poly1271ExchangeDomainSeparator computes the EIP-712 domain separator for the
-// CTF Exchange V2 contract.
-func poly1271ExchangeDomainSeparator(chainID *big.Int, verifyingContract string) [32]byte {
+// exchangeDomainSeparator hashes the selected exchange version and contract.
+func exchangeDomainSeparator(chainID *big.Int, verifyingContract, version string) [32]byte {
 	chainIDBuf := abiEncodeUint256(chainID)
 	contractBuf := abiEncodeAddress(common.HexToAddress(verifyingContract))
 
 	var combined []byte
 	combined = append(combined, crypto.Keccak256([]byte(eip712DomainTypeStr))...)
 	combined = append(combined, crypto.Keccak256([]byte("Polymarket CTF Exchange"))...)
-	combined = append(combined, crypto.Keccak256([]byte("2"))...)
+	combined = append(combined, crypto.Keccak256([]byte(version))...)
 	combined = append(combined, chainIDBuf[:]...)
 	combined = append(combined, contractBuf[:]...)
 

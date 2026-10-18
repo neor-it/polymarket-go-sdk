@@ -155,6 +155,9 @@ func BuildPoly1271OrderEnvelope(order *clobtypes.Order, chainID int64) (*TypedDa
 	if order == nil {
 		return nil, fmt.Errorf("order is required")
 	}
+	if err := validateOrderFinancials(order); err != nil {
+		return nil, err
+	}
 	depositWallet := common.Address(order.Signer)
 	if depositWallet == (common.Address{}) {
 		return nil, fmt.Errorf("order signer deposit wallet is required")
@@ -173,11 +176,15 @@ func BuildPoly1271OrderEnvelope(order *clobtypes.Order, chainID int64) (*TypedDa
 		sigTypeVal = *order.SignatureType
 	}
 
+	config, err := SigningConfiguration(chainID, order.ProtocolVersion, negRisk)
+	if err != nil {
+		return nil, err
+	}
 	domain := &apitypes.TypedDataDomain{
 		Name:              "Polymarket CTF Exchange",
-		Version:           "2",
+		Version:           config.DomainVersion,
 		ChainId:           math.NewHexOrDecimal256(chainID),
-		VerifyingContract: verifyingContractV2(negRisk),
+		VerifyingContract: config.Exchange.Hex(),
 	}
 	typesDef := apitypes.Types{
 		"EIP712Domain": {

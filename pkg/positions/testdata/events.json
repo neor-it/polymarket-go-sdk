@@ -1,0 +1,1269 @@
+[
+  {
+    "type": "event",
+    "name": "ResultReported",
+    "inputs": [
+      {
+        "name": "resolver",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "result",
+        "type": "uint256[]",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConditionResolved",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "result",
+        "type": "uint256[]",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionsSplit",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "recipient0",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "recipient1",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionsMerged",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionRedeemed",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BridgePositionMinted",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BridgePositionsBurned",
+    "inputs": [
+      {
+        "name": "positionIds",
+        "type": "uint256[]",
+        "indexed": false
+      },
+      {
+        "name": "amounts",
+        "type": "uint256[]",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EventPrepared",
+    "inputs": [
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "conditionCount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "legacyEventId",
+        "type": "bytes32",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HorizontalSplit",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HorizontalMerge",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionConverted",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionIndex",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RemainingConditionsDerivableAsNo",
+    "inputs": [
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SyntheticConditionDerivableAsYes",
+    "inputs": [
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CombinatorialConditionPrepared",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "legs",
+        "type": "uint256[]",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SplitOnCondition",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "childYesConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "childNoConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "recipient0",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "recipient1",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MergedOnCondition",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "childYesConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "childNoConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SplitOnEvent",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MergedOnEvent",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConvertedOnEvent",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "conditionIndex",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Extracted",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "fullConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "reducedConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "residualConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "recipient0",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "recipient1",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Injected",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "fullConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "reducedConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "residualConditionId",
+        "type": "bytes31",
+        "indexed": false
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConvertedToYesBasket",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "fullConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MergedFromYesBasket",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "fullConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Compressed",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "oldPositionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "newPositionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "positionAmount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "collateralOut",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Unwrapped",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "combinatorialPositionId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "underlyingPositionId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Wrapped",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "underlyingPositionId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "combinatorialPositionId",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterPositionSplit",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterPositionsMerged",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterPositionRedeemed",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterHorizontalSplit",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterHorizontalMerge",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterPositionConverted",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "eventId",
+        "type": "bytes29",
+        "indexed": true
+      },
+      {
+        "name": "conditionIndex",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CombinatorialCollateralReturned",
+    "inputs": [
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "operationCount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionMigrated",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "outcomeIndex",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MigrationConditionRegistered",
+    "inputs": [
+      {
+        "name": "v2ConditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "legacyConditionId",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MigrationResolved",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes31",
+        "indexed": true
+      },
+      {
+        "name": "legacyConditionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "legacyPayout0",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "legacyPayout1",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "result0",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "result1",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LegacyCollateralSettled",
+    "inputs": [
+      {
+        "name": "legacyToken",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "vault",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Redemption",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BinaryRedemption",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NegRiskRedemption",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TransferSingle",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TransferBatch",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "ids",
+        "type": "uint256[]",
+        "indexed": false
+      },
+      {
+        "name": "values",
+        "type": "uint256[]",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ApprovalForAll",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "approved",
+        "type": "bool",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PositionSplit",
+    "inputs": [
+      {
+        "name": "stakeholder",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "parentCollectionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "partition",
+        "type": "uint256[]",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PositionsMerge",
+    "inputs": [
+      {
+        "name": "stakeholder",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "parentCollectionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "partition",
+        "type": "uint256[]",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PayoutRedemption",
+    "inputs": [
+      {
+        "name": "redeemer",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "parentCollectionId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": false
+      },
+      {
+        "name": "indexSets",
+        "type": "uint256[]",
+        "indexed": false
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]

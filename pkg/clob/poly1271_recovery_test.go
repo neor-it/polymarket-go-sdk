@@ -26,7 +26,7 @@ func poly1271FinalDigest(t *testing.T, signer auth.Signer, order *clobtypes.Orde
 	if order.NegRisk != nil {
 		negRisk = *order.NegRisk
 	}
-	domainSep := poly1271ExchangeDomainSeparator(signer.ChainID(), verifyingContractV2(negRisk))
+	domainSep := exchangeDomainSeparator(signer.ChainID(), verifyingContractV2(negRisk), ctfDomainVersion)
 
 	sideInt := 0
 	if strings.ToUpper(order.Side) == "SELL" {
@@ -113,7 +113,7 @@ func TestPoly1271_RecoversToSigner(t *testing.T) {
 			}
 
 			// Verify the wrapped envelope tail: domainSep || contentsHash || type || len.
-			domainSep := poly1271ExchangeDomainSeparator(signer.ChainID(), verifyingContractV2(false))
+			domainSep := exchangeDomainSeparator(signer.ChainID(), verifyingContractV2(false), ctfDomainVersion)
 			gotDomainSep := wrapped[65:97]
 			if hexutil.Encode(gotDomainSep) != hexutil.Encode(domainSep[:]) {
 				t.Fatalf("wrapped domainSep mismatch:\n got = %s\n want= %s", hexutil.Encode(gotDomainSep), hexutil.Encode(domainSep[:]))
@@ -165,13 +165,13 @@ func TestBuildPoly1271OrderEnvelopeMatchesWrappedSignature(t *testing.T) {
 // separators (standard and neg-risk) plus the EIP-712 type strings to fixed
 // golden vectors, so an accidental change to the signing domain is caught.
 func TestPoly1271_ExchangeDomainSeparator_Golden(t *testing.T) {
-	std := poly1271ExchangeDomainSeparator(big.NewInt(137), verifyingContractV2(false))
+	std := exchangeDomainSeparator(big.NewInt(137), verifyingContractV2(false), ctfDomainVersion)
 	const goldenStd = "0x3264e159346253e26a64e00b69032db0e7d32f94628de3e6eecb50304d7af3d2"
 	if hexutil.Encode(std[:]) != goldenStd {
 		t.Fatalf("standard exchange domain separator drift:\n got    = %s\n golden = %s", hexutil.Encode(std[:]), goldenStd)
 	}
 
-	nr := poly1271ExchangeDomainSeparator(big.NewInt(137), verifyingContractV2(true))
+	nr := exchangeDomainSeparator(big.NewInt(137), verifyingContractV2(true), ctfDomainVersion)
 	const goldenNR = "0x9b858f53327b0bd13af8ec14cfb35234fb9eb7b0504d1a4e61f433840d30e81a"
 	if hexutil.Encode(nr[:]) != goldenNR {
 		t.Fatalf("neg-risk exchange domain separator drift:\n got    = %s\n golden = %s", hexutil.Encode(nr[:]), goldenNR)

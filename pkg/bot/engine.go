@@ -79,6 +79,7 @@ func (e *Engine) BuildTradePlan(op Opportunity) (*TradePlan, error) {
 	priceGuard := slippageGuardPrice(op, e.cfg.MaxSlippageBps)
 
 	plan := &TradePlan{
+		ProtocolVersion:   op.ProtocolVersion,
 		TokenID:           op.TokenID,
 		Side:              strings.ToUpper(op.Recommended),
 		AmountUSDC:        amount,
@@ -103,6 +104,7 @@ func (e *Engine) ExecutePlan(ctx context.Context, plan *TradePlan) (clobtypes.Or
 	defer cancel()
 
 	builder := clob.NewOrderBuilder(e.client, e.signer).
+		ProtocolVersion(plan.ProtocolVersion).
 		TokenID(plan.TokenID).
 		Side(plan.Side).
 		AmountUSDC(plan.AmountUSDC.InexactFloat64()).

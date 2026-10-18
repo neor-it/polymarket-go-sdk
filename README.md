@@ -375,5 +375,9 @@ Distributed under the Apache License 2.0. See `LICENSE` for more information.
 The SDK reads the cursor-paginated Data API v2. See the
 [SDK v0.2.0 migration guide](docs/data-api-v2-migration.md) for breaking Go API
 changes, exact position economics, Combo feed changes and Gamma protocol
-selection. Data API v1 retires on October 24, 2026. Protocol V2 metadata support
-does not implicitly enable ExchangeV3 trading.
+selection. Data API v1 retires on October 24, 2026.
+
+The explicit V1/V2 signing and contract APIs are described in the
+[SDK v0.3.0 Protocol V2 guide](docs/protocol-v2-migration.md). Enabling the SDK
+capability does not automatically grant permissions, migrate holdings or submit
+trades. Applications must persist protocol identity and gate V2 writes.

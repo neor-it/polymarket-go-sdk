@@ -20,13 +20,14 @@ type OrderBuilder struct {
 	client Client
 	signer auth.Signer
 
-	tokenID    string
-	side       string
-	price      decimal.Decimal
-	size       decimal.Decimal
-	feeRateBps decimal.Decimal
-	tickSize   float64
-	orderType  clobtypes.OrderType
+	protocolVersion types.ProtocolVersion
+	tokenID         string
+	side            string
+	price           decimal.Decimal
+	size            decimal.Decimal
+	feeRateBps      decimal.Decimal
+	tickSize        float64
+	orderType       clobtypes.OrderType
 
 	// Optional overrides
 	maker         *common.Address
@@ -63,8 +64,9 @@ type SaltGenerator func() (*big.Int, error)
 // NewOrderBuilder creates a new order builder.
 func NewOrderBuilder(client Client, signer auth.Signer) *OrderBuilder {
 	builder := &OrderBuilder{
-		client: client,
-		signer: signer,
+		protocolVersion: types.ProtocolV1,
+		client:          client,
+		signer:          signer,
 	}
 	if provider, ok := client.(interface{ orderDefaults() orderDefaults }); ok {
 		defaults := provider.orderDefaults()
@@ -76,6 +78,16 @@ func NewOrderBuilder(client Client, signer auth.Signer) *OrderBuilder {
 		builder.saltGenerator = defaults.saltGenerator
 	}
 	return builder
+}
+
+// ProtocolVersion binds the order to a specific ledger and signing domain.
+// Empty legacy input is normalized to V1; unknown explicit versions fail at build.
+func (b *OrderBuilder) ProtocolVersion(protocol types.ProtocolVersion) *OrderBuilder {
+	if protocol == "" {
+		protocol = types.ProtocolV1
+	}
+	b.protocolVersion = protocol
+	return b
 }
 
 // TokenID sets the token ID to trade.
@@ -237,6 +249,11 @@ func (b *OrderBuilder) BuildMarket() (*clobtypes.SignableOrder, error) {
 
 // BuildMarketWithContext constructs a market order and returns it with order type metadata.
 func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.SignableOrder, error) {
+	if b.signer != nil {
+		if _, err := SigningConfiguration(b.signer.ChainID().Int64(), b.protocolVersion, false); err != nil {
+			return nil, err
+		}
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -280,8 +297,8 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 	}
 
 	tokenIDInt, ok := new(big.Int).SetString(b.tokenID, 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid token_id format")
+	if !ok || tokenIDInt.Sign() < 0 || tokenIDInt.BitLen() > orderUint256Bits {
+		return nil, fmt.Errorf("token_id must be a decimal uint256")
 	}
 
 	tickSize, err := b.resolveTickSize(ctx, b.tokenID)
@@ -378,19 +395,20 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 	}
 
 	order := &clobtypes.Order{
-		Salt:          types.U256{Int: salt},
-		Signer:        orderSigner,
-		Maker:         maker,
-		TokenID:       types.U256{Int: tokenIDInt},
-		MakerAmount:   types.Decimal(makerFixed),
-		TakerAmount:   types.Decimal(takerFixed),
-		Expiration:    types.U256{Int: big.NewInt(0)},
-		Side:          side,
-		SignatureType: &sigType,
-		Timestamp:     time.Now().UnixMilli(),
-		Metadata:      metadata,
-		Builder:       builder,
-		NegRisk:       &negRisk,
+		ProtocolVersion: b.protocolVersion,
+		Salt:            types.U256{Int: salt},
+		Signer:          orderSigner,
+		Maker:           maker,
+		TokenID:         types.U256{Int: tokenIDInt},
+		MakerAmount:     types.Decimal(makerFixed),
+		TakerAmount:     types.Decimal(takerFixed),
+		Expiration:      types.U256{Int: big.NewInt(0)},
+		Side:            side,
+		SignatureType:   &sigType,
+		Timestamp:       time.Now().UnixMilli(),
+		Metadata:        metadata,
+		Builder:         builder,
+		NegRisk:         &negRisk,
 	}
 
 	return &clobtypes.SignableOrder{
@@ -400,6 +418,11 @@ func (b *OrderBuilder) BuildMarketWithContext(ctx context.Context) (*clobtypes.S
 }
 
 func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error) {
+	if b.signer != nil {
+		if _, err := SigningConfiguration(b.signer.ChainID().Int64(), b.protocolVersion, false); err != nil {
+			return nil, err
+		}
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -418,8 +441,8 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 	}
 
 	tokenIDInt, ok := new(big.Int).SetString(b.tokenID, 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid token_id format")
+	if !ok || tokenIDInt.Sign() < 0 || tokenIDInt.BitLen() > orderUint256Bits {
+		return nil, fmt.Errorf("token_id must be a decimal uint256")
 	}
 
 	tickSize, err := b.resolveTickSize(ctx, b.tokenID)
@@ -511,19 +534,20 @@ func (b *OrderBuilder) buildLimit(ctx context.Context) (*clobtypes.Order, error)
 	}
 
 	return &clobtypes.Order{
-		Salt:          types.U256{Int: salt},
-		Signer:        orderSigner,
-		Maker:         maker,
-		TokenID:       types.U256{Int: tokenIDInt},
-		MakerAmount:   types.Decimal(makerFixed),
-		TakerAmount:   types.Decimal(takerFixed),
-		Expiration:    types.U256{Int: expiration},
-		Side:          side,
-		SignatureType: &sigType,
-		Timestamp:     time.Now().UnixMilli(),
-		Metadata:      metadata,
-		Builder:       builder,
-		NegRisk:       &negRisk,
+		ProtocolVersion: b.protocolVersion,
+		Salt:            types.U256{Int: salt},
+		Signer:          orderSigner,
+		Maker:           maker,
+		TokenID:         types.U256{Int: tokenIDInt},
+		MakerAmount:     types.Decimal(makerFixed),
+		TakerAmount:     types.Decimal(takerFixed),
+		Expiration:      types.U256{Int: expiration},
+		Side:            side,
+		SignatureType:   &sigType,
+		Timestamp:       time.Now().UnixMilli(),
+		Metadata:        metadata,
+		Builder:         builder,
+		NegRisk:         &negRisk,
 	}, nil
 }
 

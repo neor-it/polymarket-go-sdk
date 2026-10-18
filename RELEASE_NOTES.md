@@ -1,5 +1,36 @@
 # Release Notes
 
+## Version 0.3.0 (2026-10-18)
+
+### Explicit Protocol V2 support
+
+- Added shared protocol identity, version-aware order builders and centralized
+  exchange/domain selection. V2 uses Polygon ExchangeV3/domain `3`; CTF keeps
+  its current exchanges/domain `2`. EOA, Safe and internal/external POLY_1271
+  paths share the configuration. ClobAuth and DepositWallet domains are unchanged.
+- Added `CONDITIONAL-V2`, full-width uint256 order validation and integer maker
+  fill calculations with separate collateral fees.
+- Added the standalone `positions` contract client and calldata encoders for
+  balances, payouts, approvals, transfers, Router split/merge/redeem, registered
+  migrations and operator-only AutoRedeemer submissions.
+- Added typed, emitter-validated ERC-1155, module, Router, migration and automatic
+  redemption events, preserving reorg identity and native identifier widths.
+  Published ABIs are parsed once for concurrent readers.
+
+### Upgrade and verification boundaries
+
+Persist the protocol in immutable application operation snapshots. Local order
+protocol metadata is excluded from CLOB wire payloads. Unknown live-market
+versions fail closed; empty historical order versions retain V1 compatibility.
+See [Protocol V2 migration](docs/protocol-v2-migration.md) for approvals, exact
+amounts, indexing and source provenance.
+
+No automatic balance conversion, redemption scheduling or transaction broadcast
+is enabled. Mainnet matching/relayer behavior and archival fork reads are not
+claimed as verified. Applications must keep V2 writes gated until their own
+separately authorized financial canary passes.
+
+
 ## Version 0.2.0 (2026-10-18)
 
 ### Data API v2 — breaking Go API changes

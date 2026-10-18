@@ -2,17 +2,18 @@ package gamma
 
 import (
 	"encoding/json"
+	"github.com/neor-it/polymarket-go-sdk/pkg/types"
 	"github.com/pkg/errors"
 	"math/big"
 	"strings"
 )
 
 // ProtocolVersion identifies the position ledger and signing configuration.
-type ProtocolVersion string
+type ProtocolVersion = types.ProtocolVersion
 
 const (
 	// ProtocolV1 identifies legacy CTF positions.
-	ProtocolV1 ProtocolVersion = "v1"
+	ProtocolV1 = types.ProtocolV1
 	// ProtocolV2 identifies PositionManager positions.
 	ProtocolV2     ProtocolVersion = "v2"
 	positionIDBits                 = 256
