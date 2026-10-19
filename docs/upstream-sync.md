@@ -1,6 +1,6 @@
 # Upstream compatibility update
 
-This update compares our published `v0.3.1` commit
+Version `v0.4.0` compares our published `v0.3.1` commit
 `145ffecac81b18664c85c2547535e43d5faa7104` with
 [GoPolymarket main at 15d4d7c](https://github.com/GoPolymarket/polymarket-go-sdk/tree/15d4d7c076107a5700ec03cff34dc53233305958).
 The histories share commit `b536e7b32b808e165aed22e9bed9c31d178e653a`;
@@ -94,8 +94,8 @@ or redemption scheduler starts merely because the SDK is upgraded.
 
 Upstream's `/v2` Go module rename, legacy Data API implementation, governance
 instruction files and checked-in trading executable are not imported. Source
-examples continue to build from this module. Published tags and releases are
-unchanged; `v0.3.1` remains the latest published release.
+examples continue to build from this module. Earlier published tags and releases
+remain unchanged. The integration is delivered as `v0.4.0`.
 
 ## Dependencies and CI
 
@@ -106,8 +106,11 @@ found called standard-library advisories with the old pinned `go1.24.13`.
 Applications select their own compiler; a dependency's toolchain directive does
 not upgrade a consuming application's toolchain.
 
-CI reads the configured toolchain from `go.mod`, pins golangci-lint `v2.12.2`,
-checks the root package and examples, and runs focused race checks. A separate
+CI reads the configured toolchain from `go.mod`, pins golangci-lint `v2.12.2`
+and govulncheck `v1.9.0`, checks the root package and examples, and runs focused
+race checks. Reachable vulnerability failures fail CI. Debricked also requires
+its repository scan credential; its container disables Go VCS stamping for
+dependency resolution only. A separate
 compile-only job verifies Go 1.24 source compatibility; it is not a security
 claim about the older runtime.
 
@@ -117,3 +120,11 @@ status and SHA-256 checksums in an archive. Run it locally with
 `scripts/compatibility-evidence.sh --out-dir artifacts/compatibility`. These two
 checks supplement the full SDK suite and consumer verification. No recurring
 schedule is created.
+
+Public client interfaces gain methods, so custom implementations and mocks may
+need updates. The go-ethereum update also adds `TransactionByHash` to custom
+`bind.ContractBackend` implementations. Keep the consumer's compiler patched
+and test the actual dependency graph selected by its `go.mod`.
+
+The [Polygaming rollout guide](polygaming-rollout.md) distinguishes SDK
+publication from application deployment and V2 write activation.

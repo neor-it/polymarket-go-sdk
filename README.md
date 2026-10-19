@@ -386,7 +386,7 @@ trades. Applications must persist protocol identity and gate V2 writes.
 
 ## Upstream API compatibility
 
-The unreleased upstream integration adds CLOB market/account APIs, Gamma keyset
+The v0.4.0 upstream integration adds CLOB market/account APIs, Gamma keyset
 pages, Bridge quote/withdrawal APIs, binary accounting snapshots and generic typed
 Relayer operations. The existing `Combos` RFQ client remains available. Signing supports
 exact uint256 salts and per-order timestamp, metadata and builder overrides.
@@ -396,7 +396,10 @@ failed setup cleaning up subscription state.
 See the [upstream comparison and upgrade notes](docs/upstream-sync.md) for the
 complete capability map, corrected wire contracts, retained V1/V2 behavior and
 verification boundaries. The language minimum is Go 1.24; development and CI use
-the patched Go 1.26.9 toolchain from `go.mod`. Published `v0.3.1` remains unchanged.
+the patched Go 1.26.9 toolchain from `go.mod`. Earlier published tags remain unchanged.
+Custom client implementations and mocks must account for added interface methods.
+See the [Polygaming rollout guide](docs/polygaming-rollout.md) before deploying the
+platform; publishing a module alone does not update its consumers.
 
 Generate checksummed schema/compile evidence with
 `scripts/compatibility-evidence.sh --out-dir artifacts/compatibility` or the manual

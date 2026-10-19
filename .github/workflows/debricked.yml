@@ -41,3 +41,6 @@ jobs:
       - uses: debricked/actions@v4
         env:
           DEBRICKED_TOKEN: ${{ secrets.DEBRICKED_TOKEN }}
+          # Dependency resolution runs in a container with different Git ownership.
+          # The scanner still records the commit; package listing needs no VCS stamp.
+          GOFLAGS: -buildvcs=false

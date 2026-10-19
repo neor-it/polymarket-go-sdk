@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased — upstream compatibility
+## Version 0.4.0 (2026-10-19)
 
 - Integrate missing capabilities from GoPolymarket SDK commit `15d4d7c` while
   retaining this module's Data API v2, Protocol V2, CTF, external-signature and
@@ -17,6 +17,15 @@
   language floor and use patched toolchain `go1.26.9` for development/CI.
 - Pin lint tooling, add race/source-compatibility checks and a manual checksummed
   compatibility-evidence exporter. See the [comparison and upgrade notes](docs/upstream-sync.md).
+- Make reachable-vulnerability scanning a required CI step with pinned
+  govulncheck `v1.9.0`; allow containerized Debricked dependency resolution without
+  Go VCS stamping. Debricked still requires its own scan credential.
+- Public client interfaces gain methods. Custom implementations and mocks may
+  need updates; custom go-ethereum `bind.ContractBackend` implementations must
+  implement `TransactionByHash`. The module path is unchanged.
+- SDK publication does not update an already built application or enable V2
+  operations. Follow the [Polygaming rollout guide](docs/polygaming-rollout.md)
+  for schema, consumer, worker and activation gates.
 
 ## Version 0.3.1 (2026-10-18)
 
