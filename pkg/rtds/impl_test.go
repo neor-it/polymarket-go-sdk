@@ -22,7 +22,7 @@ func mockWSServer(t *testing.T, handler func(*websocket.Conn)) *httptest.Server 
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		handler(conn)
 	}))
 }
@@ -41,7 +41,7 @@ func TestRtdsConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Wait for connect
 	time.Sleep(100 * time.Millisecond)
@@ -624,7 +624,7 @@ func TestConnectionStateStream(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	select {
 	case ev := <-stream.C:
@@ -837,7 +837,7 @@ func TestConnect_ConnProtectedByMutex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Give enough time for connect + pingLoop to run concurrently.
 	time.Sleep(200 * time.Millisecond)

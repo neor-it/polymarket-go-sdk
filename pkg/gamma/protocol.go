@@ -15,8 +15,11 @@ const (
 	// ProtocolV1 identifies legacy CTF positions.
 	ProtocolV1 = types.ProtocolV1
 	// ProtocolV2 identifies PositionManager positions.
-	ProtocolV2     ProtocolVersion = "v2"
-	positionIDBits                 = 256
+	ProtocolV2 = types.ProtocolV2
+)
+
+const (
+	positionIDBits = 256
 )
 
 // TradingTokens selects IDs by the explicit market version and validates outcome alignment.

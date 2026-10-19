@@ -242,6 +242,21 @@ type Client interface {
 	// MarketTradesEvents retrieves a stream of recent trade events for a market.
 	MarketTradesEvents(ctx context.Context, id string) (clobtypes.MarketTradesEventsResponse, error)
 
+	// MarketByToken resolves both outcome assets and the parent condition.
+	MarketByToken(context.Context, string) (clobtypes.MarketByTokenResponse, error)
+	// MarketsLiveActivity retrieves widget metadata for multiple conditions.
+	MarketsLiveActivity(context.Context, *clobtypes.LiveActivityRequest) (clobtypes.LiveActivityResponse, error)
+	// MarketLiveActivity retrieves one condition's widget metadata.
+	MarketLiveActivity(context.Context, string) (clobtypes.LiveActivityItem, error)
+	// BatchPricesHistory retrieves history for at most twenty asset IDs.
+	BatchPricesHistory(context.Context, *clobtypes.BatchPricesHistoryRequest) (clobtypes.BatchPricesHistoryResponse, error)
+	// OrderBooksQuery retrieves books using comma-separated token_ids.
+	OrderBooksQuery(context.Context, *clobtypes.BooksQueryRequest) (clobtypes.OrderBooksResponse, error)
+	// NegRiskByPath retrieves the negative-risk flag by asset path.
+	NegRiskByPath(context.Context, string) (clobtypes.NegRiskResponse, error)
+	// PutBalanceAllowance refreshes cached on-chain permissions; success is an acknowledgement.
+	PutBalanceAllowance(context.Context, *clobtypes.PutBalanceAllowanceRequest) error
+
 	// -- Sub-Client Accessors --
 
 	// RFQ returns the Request For Quote sub-client.

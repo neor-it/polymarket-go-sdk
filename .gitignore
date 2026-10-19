@@ -4,6 +4,7 @@
 /out/
 /build/
 /tmp/
+/artifacts/
 *.exe
 *.exe~
 *.dll

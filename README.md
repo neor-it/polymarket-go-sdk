@@ -383,3 +383,25 @@ The explicit V1/V2 signing and contract APIs are described in the
 [SDK v0.3.0 Protocol V2 guide](docs/protocol-v2-migration.md). Enabling the SDK
 capability does not automatically grant permissions, migrate holdings or submit
 trades. Applications must persist protocol identity and gate V2 writes.
+
+## Upstream API compatibility
+
+The v0.4.0 upstream integration adds CLOB market/account APIs, Gamma keyset
+pages, Bridge quote/withdrawal APIs, binary accounting snapshots and generic typed
+Relayer operations. The existing `Combos` RFQ client remains available. Signing supports
+exact uint256 salts and per-order timestamp, metadata and builder overrides.
+WebSocket streams register before setup so immediate replies are delivered, with
+failed setup cleaning up subscription state.
+
+See the [upstream comparison and upgrade notes](docs/upstream-sync.md) for the
+complete capability map, corrected wire contracts, retained V1/V2 behavior and
+verification boundaries. The language minimum is Go 1.24; development and CI use
+the patched Go 1.26.9 toolchain from `go.mod`. Earlier published tags remain unchanged.
+Custom client implementations and mocks must account for added interface methods.
+See the [Polygaming rollout guide](docs/polygaming-rollout.md) before deploying the
+platform; publishing a module alone does not update its consumers.
+
+Generate checksummed schema/compile evidence with
+`scripts/compatibility-evidence.sh --out-dir artifacts/compatibility` or the manual
+**Compatibility Evidence** GitHub workflow. Run the complete suite with
+`go test ./...`; the evidence exporter does not replace it.

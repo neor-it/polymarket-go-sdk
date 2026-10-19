@@ -1,6 +1,6 @@
 // Package relayer provides a Go client for the Polymarket relayer API.
-// It covers the full deposit wallet lifecycle: deployment, nonce retrieval,
-// EIP-712–signed batch execution, and transaction polling.
+// It covers Deposit Wallet deployment and batch signing, typed SAFE/PROXY
+// submissions, public nonce/deployment reads, authenticated history and API keys.
 package relayer
 
 import (
@@ -14,6 +14,28 @@ import (
 
 // Client provides gasless deposit wallet management via the Polymarket relayer.
 type Client interface {
+	// WithRelayerCredentials returns a copy with address-scoped relayer credentials.
+	// The credential value is copied; passing nil removes these credentials.
+	WithRelayerCredentials(credentials *RelayerCredentials) Client
+
+	// Submit submits an already-signed SAFE/PROXY transaction using builder or relayer authentication.
+	Submit(ctx context.Context, request *SubmitRequest) (*SubmitResponse, error)
+
+	// GetTransactions lists recent authenticated transactions. The API exposes no pagination contract.
+	GetTransactions(ctx context.Context) ([]Transaction, error)
+
+	// GetNonce reads the explicitly selected SAFE/PROXY signer nonce.
+	GetNonce(ctx context.Context, request *NonceRequest) (*NonceResponse, error)
+
+	// GetRelayPayload reads the relayer address and explicitly selected SAFE/PROXY nonce.
+	GetRelayPayload(ctx context.Context, request *NonceRequest) (*RelayPayloadResponse, error)
+
+	// GetDeployed checks a SAFE or Deposit Wallet address without changing existing wallet helpers.
+	GetDeployed(ctx context.Context, request *DeployedRequest) (*DeployedResponse, error)
+
+	// GetAPIKeys lists keys using Relayer API credentials, not CLOB L2 or builder headers.
+	GetAPIKeys(ctx context.Context) ([]APIKeyResponse, error)
+
 	// WithSigner returns a new Client configured to use the given signer for
 	// EIP-712 Batch signing.  ChainID and factory address are updated to match.
 	WithSigner(signer auth.Signer) Client

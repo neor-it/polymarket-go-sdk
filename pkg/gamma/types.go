@@ -6,6 +6,9 @@ import (
 
 // Request parameters
 type MarketsRequest struct {
+	AfterCursor string `json:"after_cursor,omitempty"`
+	// NextCursor is a compatibility alias for AfterCursor.
+	NextCursor          string   `json:"-"`
 	Limit               *int     `json:"limit,omitempty"`
 	Offset              *int     `json:"offset,omitempty"`
 	Order               string   `json:"order,omitempty"`
@@ -85,6 +88,9 @@ type RelatedTagsBySlugRequest struct {
 }
 
 type EventsRequest struct {
+	AfterCursor string `json:"after_cursor,omitempty"`
+	// NextCursor is a compatibility alias for AfterCursor.
+	NextCursor      string   `json:"-"`
 	Limit           *int     `json:"limit,omitempty"`
 	Offset          *int     `json:"offset,omitempty"`
 	Order           []string `json:"order,omitempty"`

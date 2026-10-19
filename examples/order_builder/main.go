@@ -53,14 +53,16 @@ func main() {
 
 	// 5. Verify Fields
 	fmt.Println("Order Built Successfully!")
-	fmt.Printf("Salt: %s\n", order.Salt.Int.String())
+	fmt.Printf("Salt: %s\n", order.Salt.String())
 	fmt.Printf("Signer: %s\n", order.Signer.String())
 	fmt.Printf("Maker: %s\n", order.Maker.String())
-	fmt.Printf("Taker: %s\n", order.Taker.String())
-	fmt.Printf("TokenID: %s\n", order.TokenID.Int.String())
+	fmt.Printf("Timestamp: %d\n", order.Timestamp)
+	fmt.Printf("Metadata: %s\n", order.Metadata)
+	fmt.Printf("Builder: %s\n", order.Builder)
+	fmt.Printf("TokenID: %s\n", order.TokenID.String())
 	fmt.Printf("MakerAmount: %s\n", order.MakerAmount.String())
 	fmt.Printf("TakerAmount: %s\n", order.TakerAmount.String())
-	fmt.Printf("Expiration: %s\n", order.Expiration.Int.String())
+	fmt.Printf("Expiration: %s\n", order.Expiration.String())
 	fmt.Printf("Side: %s\n", order.Side)
 	fmt.Printf("SignatureType: %d\n", *order.SignatureType)
 
@@ -72,7 +74,7 @@ func main() {
 	}
 
 	// Verify Salt is non-zero
-	if order.Salt.Int.Sign() == 0 {
+	if order.Salt.Sign() == 0 {
 		log.Fatalf("Error: Salt is zero")
 	} else {
 		fmt.Println("SUCCESS: Salt is generated.")

@@ -20,8 +20,8 @@ func TestU256(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UnmarshalJSON failed: %v", err)
 	}
-	if u2.Int.Int64() != 200 {
-		t.Errorf("expected 200, got %d", u2.Int.Int64())
+	if u2.Int64() != 200 {
+		t.Errorf("expected 200, got %d", u2.Int64())
 	}
 }
 

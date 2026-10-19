@@ -69,7 +69,7 @@ func (u U256) MarshalJSON() ([]byte, error) {
 	if u.Int == nil {
 		return []byte("null"), nil
 	}
-	return json.Marshal(u.Int.String())
+	return json.Marshal(u.String())
 }
 
 // UnmarshalJSON parses a U256 from a decimal or hex string/number.

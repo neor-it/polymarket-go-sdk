@@ -26,7 +26,7 @@ func TestWebSocketGoroutineLeaks_Reconnection(t *testing.T) {
 			return
 		}
 		// Close immediately to trigger reconnection
-		conn.Close()
+		_ = conn.Close()
 	}))
 	defer server.Close()
 
@@ -74,7 +74,7 @@ func TestWebSocketGoroutineLeaks_MultipleReconnections(t *testing.T) {
 		atomic.AddInt32(&connectionCount, 1)
 		// Close after a short delay
 		time.AfterFunc(20*time.Millisecond, func() {
-			conn.Close()
+			_ = conn.Close()
 		})
 	}))
 	defer server.Close()
@@ -120,7 +120,7 @@ func TestWebSocketGoroutineLeaks_CloseWhileReading(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		// Keep connection open but don't send data
 		// This simulates a hanging read
 		select {
@@ -204,7 +204,7 @@ func TestWebSocketGoroutineLeaks_SubscriptionCleanup(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Read subscription requests and keep connection alive
 		for {
@@ -236,8 +236,8 @@ func TestWebSocketGoroutineLeaks_SubscriptionCleanup(t *testing.T) {
 	}
 
 	// Close streams
-	stream1.Close()
-	stream2.Close()
+	_ = stream1.Close()
+	_ = stream2.Close()
 
 	// Close client
 	if err := client.Close(); err != nil {

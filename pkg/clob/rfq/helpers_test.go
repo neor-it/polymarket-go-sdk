@@ -241,7 +241,7 @@ func TestBuildRFQApproveQuote_EmptyOwner(t *testing.T) {
 	}
 }
 
-func TestBuildRFQApproveQuote_NilNonce(t *testing.T) {
+func TestBuildRFQApproveQuote_NonceIsNotRequiredForCurrentOrders(t *testing.T) {
 	signed := &clobtypes.SignedOrder{
 		Order: clobtypes.Order{
 			TokenID: types.U256{Int: big.NewInt(1)},
@@ -252,8 +252,8 @@ func TestBuildRFQApproveQuote_NilNonce(t *testing.T) {
 		Owner:     "owner",
 	}
 	_, err := BuildRFQApproveQuoteFromSignedOrder("r1", "q1", signed)
-	if err == nil {
-		t.Fatal("expected error for nil nonce")
+	if err != nil {
+		t.Fatalf("current order must not require deprecated nonce: %v", err)
 	}
 }
 

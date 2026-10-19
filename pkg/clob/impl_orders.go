@@ -99,12 +99,16 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		}
 	}
 
+	if order.Maker == (types.Address{}) {
+		return nil, fmt.Errorf("maker address cannot be zero")
+	}
+
 	negRisk := false
 	if order.NegRisk != nil {
 		negRisk = *order.NegRisk
 	}
 	if c != nil && c.cache != nil && order.TokenID.Int != nil {
-		tokenID := order.TokenID.Int.String()
+		tokenID := order.TokenID.String()
 		c.cache.mu.RLock()
 		if cached, ok := c.cache.negRisk[tokenID]; ok {
 			negRisk = cached
@@ -132,7 +136,7 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 		sideInt = 1
 	}
 
-	if order.Salt.Int == nil || order.Salt.Int.Sign() == 0 {
+	if order.Salt.Int == nil || order.Salt.Sign() == 0 {
 		var salt *big.Int
 		var err error
 		if saltGen != nil {
@@ -168,6 +172,10 @@ func signOrderWithCreds(signer auth.Signer, apiKey *auth.APIKey, order *clobtype
 			Signature: hexutil.Encode(sig),
 			Owner:     owner,
 		}, nil
+	}
+
+	if order.Signer == (types.Address{}) {
+		order.Signer = signer.Address()
 	}
 
 	domain := &apitypes.TypedDataDomain{
