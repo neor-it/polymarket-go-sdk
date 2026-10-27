@@ -115,7 +115,20 @@ func DecodeLog(log ethtypes.Log, cfg Config) (*LogEvent, error) {
 				recipients = append(recipients, recipient)
 			}
 		}
-		result.Operation = &PositionOperation{Initiator: initiator, Recipient: eventAddress(values, "recipient"), Recipients: recipients, ConditionID: eventHash(values, "conditionId"), EventID: eventHash(values, "eventId"), PositionID: eventUint(values, "positionId"), Amount: eventUint(values, "amount"), Payout: eventUint(values, "payout")}
+		partition, _ := values["partition"].([]*big.Int)
+		result.Operation = &PositionOperation{
+			Initiator:          initiator,
+			Recipient:          eventAddress(values, "recipient"),
+			Recipients:         recipients,
+			CollateralToken:    eventAddress(values, "collateralToken"),
+			ParentCollectionID: eventHash(values, "parentCollectionId"),
+			Partition:          partition,
+			ConditionID:        eventHash(values, "conditionId"),
+			EventID:            eventHash(values, "eventId"),
+			PositionID:         eventUint(values, "positionId"),
+			Amount:             eventUint(values, "amount"),
+			Payout:             eventUint(values, "payout"),
+		}
 		if log.Address == cfg.ConditionalTokens {
 			result.Operation.Recipient = initiator
 		}

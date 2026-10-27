@@ -54,6 +54,36 @@ graph TD
 - **`pkg/auth`**: Cryptographic primitives for EIP-712 signing and HMAC generation.
 - **`pkg/transport`**: HTTP transport layer handling signing injection, retries, and error parsing.
 - **`pkg/execution`**: Unified execution contract (`Place`/`Cancel`/`Query`/`Replay`) with CLOB adapter bindings.
+- **`pkg/ctf`**: CTF identifiers, direct-chain calls and unsigned split calldata for owner-signed wallet batches.
+- **`pkg/positions`**: Protocol V2 position calldata, contract reads and typed CTF/V2 lifecycle events.
+
+### Owner-signed Position Splits
+
+For a CTF market funded with pUSD, use `ctf.CollateralAdapterForChain(chainID, negRisk)`
+to select the standard or negative-risk collateral adapter. Encode its call with
+`ctf.EncodeSplitPosition(*ctf.SplitPositionRequest)` and include the result in the
+owner-authorized wallet batch. The encoder does not make RPC calls, sign, or submit
+transactions. Only the published Polygon pUSD adapters are supported; unknown
+networks and unverified testnet deployments return `ctf.ErrConfigNotFound`.
+
+Use pUSD as `CollateralToken`, a zero `ParentCollectionID`, the original CTF
+`ConditionID`, binary partition `[1, 2]`, and an integer six-decimal `Amount`.
+Approve the selected collateral adapter to spend the split amount. The older
+`Client.SplitPosition` method remains a direct ConditionalTokens transaction;
+it does not select a pUSD adapter or relay a Deposit Wallet batch.
+
+For a Protocol V2 market, use `positions.ConfigForChain` to select Router and
+`positions.EncodeSplit` to encode its bytes31 condition and explicit amount.
+Existing `PriceDec` and FOK order support can sell the other outcome separately;
+split and sell are distinct authorizations and are not an atomic combined trade.
+
+`positions.DecodeLog` preserves CTF split collateral, parent collection and partition
+in `PositionOperation`. A CTF event's stakeholder can be an adapter: verify final
+token recipients through ledger transfers and confirmed transaction evidence.
+Router/module lifecycle events are contextual and must not be counted again as
+additional minted balances.
+
+Protocol reference: [Polymarket position management](https://docs.polymarket.com/trading/positions/manage).
 
 ### Execution Core (Current State)
 

@@ -53,8 +53,11 @@ type OperatorApproval struct {
 // PositionOperation describes module/router context without mutating indexed balances.
 type PositionOperation struct {
 	Initiator, Recipient       common.Address
+	CollateralToken            common.Address
 	Recipients                 []common.Address
 	ConditionID, EventID       common.Hash
+	ParentCollectionID         common.Hash
+	Partition                  []*big.Int
 	PositionID, Amount, Payout *big.Int
 }
 

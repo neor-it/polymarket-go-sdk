@@ -1,6 +1,9 @@
 package ctf
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
+)
 
 // Chain IDs.
 const (
@@ -44,4 +47,17 @@ func resolveConfig(chainID int64, negRisk bool) (contractConfig, bool) {
 
 func ptrAddress(addr common.Address) *common.Address {
 	return &addr
+}
+
+// CollateralAdapterForChain returns the published pUSD CTF split/merge/redeem target.
+// Negative-risk markets use their collateral adapter, not the legacy NegRiskAdapter.
+// Only the published Polygon deployment is supported; testnet targets are not inferred.
+func CollateralAdapterForChain(chainID int64, negRisk bool) (common.Address, error) {
+	if chainID != PolygonChainID {
+		return common.Address{}, errors.Wrapf(ErrConfigNotFound, "resolve pUSD CTF collateral adapter for chain %d", chainID)
+	}
+	if negRisk {
+		return common.HexToAddress(polygonNegRiskCollateralAdapter), nil
+	}
+	return common.HexToAddress(polygonCollateralAdapter), nil
 }
